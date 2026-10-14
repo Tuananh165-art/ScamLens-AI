@@ -4,7 +4,7 @@ test("home renders Vietnamese analysis choices and privacy notice", async ({ pag
   await page.goto("/");
   await expect(page.getByRole("heading", { name: /Tin nhắn này có/ })).toBeVisible();
   await expect(page.getByRole("tab", { name: "Tin nhắn" })).toBeVisible();
-  await expect(page.getByText(/nhà cung cấp AI bên ngoài/)).toBeVisible();
+  await expect(page.getByRole("checkbox", { name: /nội dung đã che sẽ được gửi cho AI/ })).toBeVisible();
   await expect(page.getByText(/DeepSeek/i)).toHaveCount(0);
 });
 
@@ -17,7 +17,7 @@ test("message can be prepared and its review checkbox gates sending", async ({ p
   await expect(page.getByText(/Không có mẫu trong danh sách tự che/)).toBeVisible();
   await expect(page.getByRole("button", { name: /Phân tích tin nhắn/ })).toHaveCount(0);
   await page.getByLabel(/Tôi đã đối chiếu nội dung/).check();
-  await page.getByLabel(/nhà cung cấp AI bên ngoài/).check();
+  await page.getByRole("checkbox", { name: /nội dung đã che sẽ được gửi cho AI/ }).check();
   await expect(page.getByRole("button", { name: /Phân tích tin nhắn/ })).toBeVisible();
 });
 

@@ -1,4 +1,4 @@
-# Import repo GitHub và deploy ScamLens AI trên Vercel
+﻿# Import repo GitHub và deploy ScamLens AI trên Vercel
 
 Vercel Hobby chỉ dành cho mục đích cá nhân, phi thương mại. Dùng checklist này cho portfolio/demo cá nhân; kiểm tra điều khoản hiện hành trước khi triển khai cho dịch vụ kinh doanh.
 
@@ -34,14 +34,14 @@ Không lưu secret trong GitHub Actions CI. `.env.example` chỉ chứa placehol
 5. Trong Project Settings → Environment Variables thêm các nhóm:
    - AI: `DEEPSEEK_API_KEY`, `DEEPSEEK_MODEL`.
    - Supabase: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
-   - URL app: `NEXT_PUBLIC_APP_URL=https://<DOMAIN>`.
+   - URL app: `NEXT_PUBLIC_APP_URL=https://scam-lens-ai.vercel.app`.
    - Upstash: `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`, `RATE_LIMIT_HMAC_SECRET`.
    - Quota: năm biến `RATE_LIMIT_*` từ `.env.example`.
    - `SCAMLENS_DEMO_MODE=false` cho ứng dụng AI thật.
 6. Chọn Production và Preview cho các biến phù hợp; tránh copy secret sang branch không tin cậy. Nhấn Save.
 7. Deploy; kiểm tra build log không in env.
 
-Nếu app báo thiếu `DEEPSEEK_API_KEY`/`DEEPSEEK_MODEL`, kiểm tra cột **Environments** của từng biến. Biến chỉ có scope **Preview** không được cấp cho Production. Mở Deployments để xem deployment URL đang lỗi chạy ở môi trường nào; thêm hai biến vào đúng môi trường đó (thường nên chọn cả Production và Preview cho demo cá nhân), lưu rồi tạo deployment mới. Environment Variables mới không được gắn ngược vào deployment cũ. Sau deployment, mở `https://<DOMAIN>/api/health`: `services.textAi` và `services.imageAi` phải là `true`. Giá trị `true` chỉ chứng minh biến có mặt, chưa xác minh key/model gọi được.
+Nếu app báo thiếu `DEEPSEEK_API_KEY`/`DEEPSEEK_MODEL`, kiểm tra cột **Environments** của từng biến. Biến chỉ có scope **Preview** không được cấp cho Production. Mở Deployments để xem deployment URL đang lỗi chạy ở môi trường nào; thêm hai biến vào đúng môi trường đó (thường nên chọn cả Production và Preview cho demo cá nhân), lưu rồi tạo deployment mới. Environment Variables mới không được gắn ngược vào deployment cũ. Sau deployment, mở `https://scam-lens-ai.vercel.app/api/health`: `services.textAi` và `services.imageAi` phải là `true`. Giá trị `true` chỉ chứng minh biến có mặt, chưa xác minh key/model gọi được.
 
 Sau migration provider, chỉ giữ `DEEPSEEK_API_KEY` và `DEEPSEEK_MODEL` trong nhóm AI. Xóa `GEMINI_API_KEY`, `GEMINI_MODEL` và các biến Zen cũ (`AI_ENDPOINT`, `AI_API_KEY`, `AI_MODEL`) khỏi Production/Preview rồi redeploy để áp dụng cấu hình mới.
 
@@ -50,9 +50,9 @@ AI keys và Upstash REST token luôn server-only. Supabase URL và anon/publisha
 ## 3. OAuth trên domain triển khai
 
 1. Ghi lại domain deployment Production đang hoạt động.
-2. Thêm `https://<DOMAIN>/auth/callback` vào Supabase Authentication → URL Configuration → Redirect URLs.
-3. Đặt Site URL thành `https://<DOMAIN>`.
-4. Bổ sung origin `https://<DOMAIN>` vào **Authorized JavaScript origins** của Google OAuth client. Google **Authorized redirect URIs** phải giữ callback Supabase `https://<PROJECT_REF>.supabase.co/auth/v1/callback` lấy trực tiếp từ provider page, không phải `https://<DOMAIN>/auth/callback`.
+2. Thêm `https://scam-lens-ai.vercel.app/auth/callback` vào Supabase Authentication → URL Configuration → Redirect URLs.
+3. Đặt Site URL thành `https://scam-lens-ai.vercel.app`.
+4. Bổ sung origin `https://scam-lens-ai.vercel.app` vào **Authorized JavaScript origins** của Google OAuth client. Google **Authorized redirect URIs** phải giữ callback Supabase `https://<PROJECT_REF>.supabase.co/auth/v1/callback` lấy trực tiếp từ provider page, không phải `https://scam-lens-ai.vercel.app/auth/callback`.
 5. Cập nhật `NEXT_PUBLIC_APP_URL` của Vercel thành origin canonical, không có path.
 6. Redeploy. Thử đăng nhập Google, lưu lịch sử, mở và xóa report.
 
@@ -60,7 +60,7 @@ Vercel Preview có origin khác nhau. Chỉ cho Preview đăng nhập nếu đã
 
 ## 4. Smoke test sau deploy
 
-Mở `https://<DOMAIN>/api/health`; chỉ xác nhận biến cấu hình tồn tại, không xác minh provider thật. Sau đó:
+Mở `https://scam-lens-ai.vercel.app/api/health`; chỉ xác nhận biến cấu hình tồn tại, không xác minh provider thật. Sau đó:
 
 1. Mở app trong tab riêng tư và chạy một nội dung giả, đã đồng ý gửi.
 2. Chạy một lượt ảnh giả, che dữ liệu trước khi đọc.

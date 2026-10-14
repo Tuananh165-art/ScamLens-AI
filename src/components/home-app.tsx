@@ -10,12 +10,13 @@ import {
 } from "lucide-react";
 import { ImageRedactor } from "@/components/image-redactor";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { LogoutButton } from "@/components/logout-button";
 import { redactSensitiveText } from "@/lib/analysis/redact";
 import type { AnalysisReport, AnalyzeRequest } from "@/lib/analysis/schema";
 
 type InputType = "message" | "email" | "image" | "url";
 type Feedback = { kind: "error" | "success" | "info"; text: string } | null;
-type Props = { signedIn: boolean; email: string | null; authConfigured: boolean };
+type Props = { signedIn: boolean; email: string | null; authConfigured: boolean; authError?: boolean };
 
 const types: Array<{ id: InputType; label: string; icon: typeof MessageCircle }> = [
   { id: "message", label: "Tin nhắn", icon: MessageCircle },
@@ -38,7 +39,7 @@ const demoExamples: Record<InputType, { label: string; content: string; subject?
   url: { label: "Đường dẫn cần kiểm tra · mẫu", content: "https://example.test/secure-login" },
 };
 
-export function HomeApp({ signedIn, email, authConfigured }: Props) {
+export function HomeApp({ signedIn, email, authConfigured, authError = false }: Props) {
   const [type, setType] = useState<InputType>("message");
   const [content, setContent] = useState("");
   const [context, setContext] = useState("");
@@ -182,8 +183,9 @@ export function HomeApp({ signedIn, email, authConfigured }: Props) {
     <header className="topbar">
       <Link href="/" className="brand" aria-label="ScamLens AI trang chủ"><span className="brand-mark"><Shield size={20} strokeWidth={2.1} /><span className="brand-spark"><Sparkles size={10} /></span></span><span className="brand-word">scamlens<span>.</span><small>AI</small></span></Link>
       <nav className="top-nav" aria-label="Điều hướng chính"><Link className="nav-active" href="/#analyze">Phân tích</Link><Link href="/guide">Cách tự bảo vệ</Link><Link href="/guide#privacy">Quyền riêng tư</Link></nav>
-      <div className="account-area"><ThemeToggle />{signedIn ? <><Link className="account-link" href="/history"><Clock3 size={15} /> Lịch sử</Link><span className="account-email">{email}</span><form action="/auth/logout" method="post"><button className="account-button">Đăng xuất</button></form></> : authConfigured ? <a href="/auth/login" className="sign-in"><span className="google-g">G</span> Đăng nhập <ArrowUpRight size={14} /></a> : <span className="setup-state"><span /> Cấu hình đăng nhập sau</span>}</div>
+      <div className="account-area"><ThemeToggle />{signedIn ? <><Link className="account-link" href="/history"><Clock3 size={15} /> Lịch sử</Link><span className="account-email" title={email ?? undefined}>{email ?? "Đã đăng nhập"}</span><LogoutButton /></> : authConfigured ? <a href="/auth/login" className="sign-in"><span className="google-g">G</span> Đăng nhập <ArrowUpRight size={14} /></a> : <span className="setup-state"><span /> Cấu hình đăng nhập sau</span>}</div>
     </header>
+    {authError && <p className="feedback feedback-error" role="alert">Chưa hoàn tất đăng nhập Google. Hãy bắt đầu đăng nhập lại trên cùng domain. Nếu vẫn lỗi, kiểm tra URL callback trong cấu hình Supabase.</p>}
 
     <section className="hero" id="analyze">
       <div className="hero-copy"><div className="eyebrow"><span className="eyebrow-dot" /> TRỢ LÝ AN TOÀN SỐ · TIẾNG VIỆT</div><h1>Tin nhắn này có<br /><span>đáng tin không?</span></h1><p className="hero-lede">Phát hiện dấu hiệu đáng ngờ, giải thích bằng chứng và giúp bạn tự kiểm chứng — trước khi làm theo.</p><div className="trust-points"><span><ShieldCheck size={16} /> Trích dẫn có thể đối chiếu</span><span><LockKeyhole size={15} /> Bạn xem trước dữ liệu gửi</span><span><Fingerprint size={15} /> Không lưu nếu bạn không chọn</span></div></div>

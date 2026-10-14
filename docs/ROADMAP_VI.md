@@ -61,4 +61,6 @@ npm.cmd run smoke:ai
 
 ## Kết luận nghiệm thu hiện tại
 
+Cập nhật auth ngày 15/10/2026: đã sửa Origin cho mutation cùng host, callback/PKCE cùng domain, refresh cookie qua Proxy, hiển thị email trên màn hình nhỏ và reset state theo user. Local pass 50 unit/integration test, 9 E2E Chromium, lint, typecheck và build. Chưa kiểm chứng lại Google OAuth hai Gmail và RLS trên deployment live; xem [hướng dẫn nghiệm thu session](AUTH_SESSION_FIX_VI.md).
+
 Migration mã nguồn sang DeepSeek đã chuyển API routes, quota, lỗi, giao diện và tài liệu. Chưa có bằng chứng live DeepSeek; chạy smoke sẽ gọi text và vision và có thể tiêu số dư tài khoản. Supabase/RLS, Upstash production quota, workflow live đầy đủ và Vercel vẫn là nghiệm thu riêng. Vercel cần redeploy với `DEEPSEEK_API_KEY`/`DEEPSEEK_MODEL`, xóa biến Gemini/Zen cũ rồi smoke bằng dữ liệu giả. Demo mode không chứng minh DeepSeek live.

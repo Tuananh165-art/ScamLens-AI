@@ -1,4 +1,4 @@
-# Khắc phục Google OAuth `redirect_uri_mismatch`
+﻿# Khắc phục Google OAuth `redirect_uri_mismatch`
 
 ## Chẩn đoán từ lỗi hiện tại
 
@@ -29,16 +29,16 @@ Vì vậy **chưa cần deploy Vercel để sửa lỗi local**. Cấu hình loc
 9. Trong `.env` local, giữ `NEXT_PUBLIC_APP_URL=http://localhost:3000`. Các biến Supabase phải trỏ tới đúng project ScamLens và key public/anon tương ứng. Không đưa Client Secret, service-role key hay AI key vào `NEXT_PUBLIC_*`.
 10. Dừng và chạy lại `npm.cmd run dev` sau khi đổi env. Mở trực tiếp `http://localhost:3000`, bấm Đăng nhập Google.
 
-Luồng thành công phải là Google → URL callback `...supabase.co/auth/v1/callback` → `http://localhost:3000/auth/callback` → `/history`. Nếu vẫn gặp lỗi, trên trang lỗi Google xem `redirect_uri` của request; so sánh nguyên văn với Google **Authorized redirect URIs** và kiểm tra Supabase đang dùng đúng Client ID vừa sửa.
+Luồng thành công phải là Google → URL callback `...supabase.co/auth/v1/callback` → `http://localhost:3000/auth/callback` → `/`. Nếu bắt đầu từ trang lịch sử, ứng dụng lưu đích `/history` trong cookie tạm và trả về lịch sử. Không thêm `?next=...` vào callback đã đăng ký. Nếu vẫn gặp lỗi, trên trang lỗi Google xem `redirect_uri` của request; so sánh nguyên văn với Google **Authorized redirect URIs** và kiểm tra Supabase đang dùng đúng Client ID vừa sửa.
 
 ## Khi deploy Vercel
 
 Chỉ cần thêm origin và callback ứng dụng production sau khi đã có domain thật:
 
-1. Vercel → Project → Settings → Environment Variables, đặt `NEXT_PUBLIC_APP_URL=https://<DOMAIN>` cho Production và redeploy.
-2. Google Cloud client ScamLens → **Authorized JavaScript origins**: thêm `https://<DOMAIN>`; giữ `http://localhost:3000` nếu vẫn cần local.
+1. Vercel → Project → Settings → Environment Variables, đặt `NEXT_PUBLIC_APP_URL=https://scam-lens-ai.vercel.app` cho Production và redeploy.
+2. Google Cloud client ScamLens → **Authorized JavaScript origins**: thêm `https://scam-lens-ai.vercel.app`; giữ `http://localhost:3000` nếu vẫn cần local.
 3. Google Cloud → **Authorized redirect URIs**: giữ callback Supabase như cũ. Chỉ cần thêm URI khác nếu dùng một Supabase project/callback khác.
-4. Supabase → **Authentication → URL Configuration**: đặt **Site URL** là `https://<DOMAIN>`; thêm `https://<DOMAIN>/auth/callback` vào **Redirect URLs**. Giữ local callback trong allowlist nếu vẫn cần dev local.
+4. Supabase → **Authentication → URL Configuration**: đặt **Site URL** là `https://scam-lens-ai.vercel.app`; thêm `https://scam-lens-ai.vercel.app/auth/callback` vào **Redirect URLs**. Giữ local callback trong allowlist nếu vẫn cần dev local.
 5. Kiểm tra Google provider trong Supabase vẫn dùng Client ID/Secret của client ScamLens.
 6. Thử đăng nhập production. Không dùng URL preview wildcard rộng; chỉ thêm origin/callback preview cụ thể nếu thực sự cần đăng nhập ở preview.
 
@@ -49,6 +49,8 @@ Chỉ cần thêm origin và callback ứng dụng production sau khi đã có d
 `GET /auth/login 307` là redirect khởi tạo OAuth. Trước đây nút dùng Next `<Link>`, nên Next thử điều hướng bằng fetch RSC; khi endpoint trả redirect liên miền tới Google/Supabase, fetch này có thể báo `Failed to fetch` rồi Next fallback sang full browser navigation. Nút đăng nhập hiện dùng thẻ `<a>` để trình duyệt đi theo redirect trực tiếp. Lỗi RSC này không phải nguyên nhân của Google `redirect_uri_mismatch`.
 
 ## Tài liệu chính thức
+
+Với lỗi không hiện email, logout `403 Origin không hợp lệ` hoặc đổi Gmail vẫn thấy tài khoản cũ, làm theo [Kiểm tra session và chuyển tài khoản](AUTH_SESSION_FIX_VI.md).
 
 - [Supabase: Sign in with Google](https://supabase.com/docs/guides/auth/social-login/auth-google)
 - [Supabase: Redirect URLs](https://supabase.com/docs/guides/auth/redirect-urls)

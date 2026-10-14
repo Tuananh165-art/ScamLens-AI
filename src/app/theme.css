@@ -423,3 +423,16 @@ html[data-theme="dark"] .art-orbit { border-color: #283752; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
 }
+
+.account-area .account-email { display: block; max-width: 220px; font-size: 13px; }
+.logout-control { position: relative; }
+.logout-error { position: absolute; right: 0; top: calc(100% + 8px); z-index: 10; width: min(300px, 85vw); padding: 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--paper); color: #b42318; font-size: 13px; box-shadow: 0 8px 24px #0002; }
+@media (max-width: 900px) {
+  .topbar { height: auto; min-height: 78px; flex-wrap: wrap; padding: 12px 0; gap: 12px; }
+  .account-area { flex-wrap: wrap; max-width: 100%; }
+  .account-area .account-email { max-width: min(220px, 60vw); }
+}
+@media (max-width: 650px) {
+  .account-area { width: 100%; justify-content: flex-start; }
+  .account-area .account-email { flex: 1; min-width: 0; }
+}

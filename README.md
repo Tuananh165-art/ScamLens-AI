@@ -53,6 +53,7 @@ Hướng dẫn đầy đủ:
 - [Cài local và chạy tính năng](docs/SETUP_VI.md)
 - [Tạo Supabase, Google OAuth và Upstash](docs/SERVICES_VI.md)
 - [Khắc phục Google OAuth `redirect_uri_mismatch`](docs/OAUTH_TROUBLESHOOTING_VI.md)
+- [Sửa session, email, logout và kiểm thử chuyển Gmail A → B](docs/AUTH_SESSION_FIX_VI.md)
 - [Kiểm thử và demo](docs/TEST_DEMO_VI.md)
 - [Đưa repo GitHub lên Vercel](docs/DEPLOY_VI.md)
 - [Nguyên tắc riêng tư và giới hạn](docs/PRIVACY_VI.md)

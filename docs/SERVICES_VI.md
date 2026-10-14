@@ -1,4 +1,4 @@
-# Thiết lập Supabase, Google OAuth và Upstash
+﻿# Thiết lập Supabase, Google OAuth và Upstash
 
 Các dashboard thay đổi theo thời gian; tên menu có thể khác đôi chút. Dùng đúng project URL và OAuth callback được hiển thị trong dashboard của chính bạn.
 
@@ -32,7 +32,7 @@ Restart `npm.cmd run dev` sau khi đổi env.
 8. Trong Supabase **Authentication → URL Configuration**, đặt Site URL là `http://localhost:3000` và thêm `http://localhost:3000/auth/callback` vào danh sách **Redirect URLs**.
 9. Mở `http://localhost:3000`, bấm Đăng nhập. Luồng đúng là Google → callback Supabase → `http://localhost:3000/auth/callback` → `/history`.
 
-Khi có domain Vercel, thêm `https://<DOMAIN>/auth/callback` vào Supabase **Redirect URLs** và cập nhật Site URL thành `https://<DOMAIN>`. Trong Google Cloud, thêm origin `https://<DOMAIN>` vào **Authorized JavaScript origins**. Google **Authorized redirect URI** vẫn là callback Supabase được hiển thị ở provider, không phải callback Vercel. Không dùng wildcard redirect rộng.
+Khi có domain Vercel, thêm `https://scam-lens-ai.vercel.app/auth/callback` vào Supabase **Redirect URLs** và cập nhật Site URL thành `https://scam-lens-ai.vercel.app`. Trong Google Cloud, thêm origin `https://scam-lens-ai.vercel.app` vào **Authorized JavaScript origins**. Google **Authorized redirect URI** vẫn là callback Supabase được hiển thị ở provider, không phải callback Vercel. Không dùng wildcard redirect rộng.
 
 ## 3. Tạo Upstash Redis để quota hoạt động giữa các instance
 

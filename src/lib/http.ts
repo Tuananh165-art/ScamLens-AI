@@ -9,10 +9,11 @@ export function privateJson(body: unknown, status = 200, extra: Record<string, s
 
 export function mutationOriginAllowed(request: Request) {
   const origin = request.headers.get("origin");
-  const expected = process.env.NEXT_PUBLIC_APP_URL;
   if (!origin) return false;
   try {
-    const allowed = expected ? new URL(expected).origin : new URL(request.url).origin;
-    return new URL(origin).origin === allowed;
+    // The canonical metadata URL must not reject same-origin deployment aliases.
+    const source = new URL(origin);
+    return (source.protocol === "https:" || source.protocol === "http:")
+      && source.origin === origin && source.origin === new URL(request.url).origin;
   } catch { return false; }
 }
