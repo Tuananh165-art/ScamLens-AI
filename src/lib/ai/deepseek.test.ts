@@ -37,11 +37,15 @@ describe("DeepSeek adapter", () => {
     const [url, init] = vi.mocked(fetch).mock.calls[0];
     expect(url).toBe("https://api.deepseek.com/chat/completions");
     expect(new Headers(init?.headers).get("authorization")).toBe("Bearer test-key");
-    expect(JSON.parse(String(init?.body))).toMatchObject({
+    const request = JSON.parse(String(init?.body));
+    expect(request).toMatchObject({
       model: "deepseek-v4-flash",
       response_format: { type: "json_object" },
       thinking: { type: "disabled" },
     });
+    expect(request.messages[0].content).toContain('"findings":[]');
+    expect(request.messages[0].content).toContain("suspicious_url");
+    expect(request.messages[0].content).toContain("Tất cả khóa dưới đây là bắt buộc");
   });
 
   it("sends the redacted image inline and validates OCR JSON", async () => {
