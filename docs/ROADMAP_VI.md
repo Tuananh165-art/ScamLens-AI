@@ -1,14 +1,13 @@
 # Roadmap và nghiệm thu ScamLens AI
 
-Trạng thái migration ghi nhận ngày 15/10/2026. `PASS` chỉ áp dụng cho bằng chứng local ghi bên dưới; cấu hình trên tài khoản bên ngoài vẫn cần nghiệm thu riêng.
+Trạng thái migration ghi nhận ngày 15/10/2026. `PASS` chỉ áp dụng cho bằng chứng local ghi bên dưới; live DeepSeek smoke chưa chạy trong migration này để tránh tiêu số dư API mà không cần thiết.
 
 ## M1 — Nền tảng và kết nối AI
 
 - [x] Next.js App Router, TypeScript, Tailwind, lockfile, scripts và `.gitignore`.
-- [x] Adapter server-side Gemini dùng structured output và cùng model cho văn bản/ảnh; validation Zod, timeout và lỗi an toàn.
-- [ ] Gemini live text report — smoke trước đó đã qua schema; lần kiểm tra mới nhất sau khi đồng bộ giới hạn schema nhận HTTP 429. Cần kiểm tra quota trong Google AI Studio và chạy lại sau khi hạn mức reset.
-- [x] Gemini live image input — smoke nhận ảnh PNG giả lập và trả JSON OCR qua schema ở lần kiểm tra gần nhất. Đây chỉ xác nhận kết nối/contract; chưa đánh giá chất lượng OCR trên ảnh giao dịch thực tế.
-- [x] Zen được loại khỏi runtime source; sau deploy cần xóa ba biến `AI_ENDPOINT`, `AI_API_KEY`, `AI_MODEL` khỏi môi trường Vercel.
+- [x] Adapter server-side DeepSeek dùng JSON mode, validation Zod, timeout và lỗi an toàn; cùng model cho text và vision.
+- [ ] DeepSeek live text report và vision — chưa được gọi trong migration này. Chạy `npm.cmd run smoke:ai` có thể tiêu số dư API; kiểm tra balance/key trước khi chạy.
+- [x] Gemini SDK/adapter và Zen đã được gỡ khỏi runtime source; sau deploy cần xóa biến `GEMINI_API_KEY`, `GEMINI_MODEL`, `AI_ENDPOINT`, `AI_API_KEY`, `AI_MODEL` khỏi Vercel.
 
 ## M2 — Văn bản, email, URL và bằng chứng
 
@@ -16,12 +15,12 @@ Trạng thái migration ghi nhận ngày 15/10/2026. `PASS` chỉ áp dụng cho
 - [x] Luật phân tích, schema có cấu trúc, đối chiếu bằng chứng với nguồn và tính lại mức rủi ro từ finding hợp lệ.
 - [x] Parse URL cục bộ bằng WHATWG URL và `tldts`; không gửi request đến hostname người dùng nhập.
 - [x] Xuất/print báo cáo, checklist kiểm chứng và giới hạn.
-- [ ] Bộ acceptance 30 fixture mục tiêu — chưa hoàn tất; hiện có 13 unit/API tests cùng 5 browser tests. Cần mở rộng các fixture phủ đủ nhóm tình huống trước khi tuyên bố chất lượng phân tích đã được đánh giá rộng.
+- [ ] Bộ acceptance 30 fixture mục tiêu — chưa hoàn tất; hiện có 17 unit/API tests cùng 5 browser tests. Cần mở rộng các fixture phủ đủ nhóm tình huống trước khi tuyên bố chất lượng phân tích đã được đánh giá rộng.
 
 ## M3 — Ảnh và xác nhận OCR
 
 - [x] Upload một ảnh, giới hạn kích thước, kiểm tra MIME/signature; browser re-encode và vẽ vùng che đặc trước upload.
-- [x] Gemini đọc ảnh đã xử lý; người dùng xem/sửa/xác nhận bản chữ trước khi gửi Gemini phân tích.
+- [x] DeepSeek đọc ảnh đã xử lý; người dùng xem/sửa/xác nhận bản chữ trước khi gửi DeepSeek phân tích.
 - [x] Ảnh gốc không được lưu cùng báo cáo.
 - [ ] Bộ sáu ảnh fixture và E2E sửa OCR — chưa có bằng chứng tự động trong phiên này; demo thủ công chỉ dùng ảnh giả.
 
@@ -37,8 +36,8 @@ Trạng thái migration ghi nhận ngày 15/10/2026. `PASS` chỉ áp dụng cho
 
 - [x] Giao diện responsive và tài liệu setup, dịch vụ, riêng tư, test/demo, deploy bằng tiếng Việt.
 - [x] GitHub Actions chạy lint, typecheck, unit test và build với Node.js 24; không gọi AI trong CI.
-- [x] Lint, typecheck, 13 unit/API tests, 5 Playwright E2E và production build — `PASS` trong workspace local ngày 15/10/2026.
-- [ ] GitHub push và Vercel deployment — `BLOCKED` bởi chưa kết nối repo/tài khoản; chưa có URL deployment để smoke test.
+- [x] Lint, typecheck, unit/API tests, Playwright E2E và production build — source DeepSeek: lint/typecheck pass; 5 file test, 17 test pass; E2E 5/5 pass; production build pass.
+- [ ] Vercel — cần redeploy source mới với DeepSeek env và xác minh workflow live trên deployment.
 
 ## Lệnh tái hiện kiểm tra local
 
@@ -54,7 +53,7 @@ npm.cmd run test:e2e
 npm.cmd run build
 ```
 
-Smoke test AI là bước live riêng, gọi hai lần Gemini và có thể tiêu quota:
+Smoke test AI là bước live riêng, gọi hai lần DeepSeek và có thể tiêu quota:
 
 ```powershell
 npm.cmd run smoke:ai
@@ -62,4 +61,4 @@ npm.cmd run smoke:ai
 
 ## Kết luận nghiệm thu hiện tại
 
-Migration mã nguồn sang Gemini đã qua lint, typecheck, 13 unit/API tests, 5 Playwright E2E và production build tại local. Gemini image-input smoke pass; text smoke trước đó pass nhưng lần gần nhất trả HTTP 429 sau khi schema được siết khớp với Zod, nên xác nhận text live đang chờ quota và smoke lại. Chưa có bằng chứng kiểm thử chất lượng OCR trên ảnh thật, gọi toàn bộ workflow `/api/analyze` qua UI với provider live, Supabase/RLS, Upstash production quota hoặc Vercel deployment. Vercel cần redeploy với Gemini env; sau đó xóa các biến Zen cũ khỏi Vercel. Demo mode không chứng minh Gemini live.
+Migration mã nguồn sang DeepSeek đã chuyển API routes, quota, lỗi, giao diện và tài liệu. Chưa có bằng chứng live DeepSeek; chạy smoke sẽ gọi text và vision và có thể tiêu số dư tài khoản. Supabase/RLS, Upstash production quota, workflow live đầy đủ và Vercel vẫn là nghiệm thu riêng. Vercel cần redeploy với `DEEPSEEK_API_KEY`/`DEEPSEEK_MODEL`, xóa biến Gemini/Zen cũ rồi smoke bằng dữ liệu giả. Demo mode không chứng minh DeepSeek live.

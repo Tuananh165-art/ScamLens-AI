@@ -4,7 +4,7 @@ import { attachVerifiedEvidence } from "@/lib/analysis/evidence";
 import { getRuleFindings } from "@/lib/analysis/rules";
 import { inspectUrl } from "@/lib/analysis/url";
 import { buildAnalysisPrompt } from "@/lib/analysis/prompts";
-import { analyzeWithGemini } from "@/lib/ai/gemini";
+import { analyzeWithDeepSeek } from "@/lib/ai/deepseek";
 import { publicError } from "@/lib/ai/errors";
 import { takeQuota } from "@/lib/security/rate-limit";
 import { getAuthenticatedUser } from "@/lib/supabase/server";
@@ -54,10 +54,10 @@ export async function POST(request: Request) {
     if (process.env.SCAMLENS_DEMO_MODE === "true") {
       modelReport = { summary: "Đây là báo cáo minh họa; AI chưa được gọi.", riskLevel: "insufficient", findings: ruleFindings, checklist: ["Không chuyển tiền hoặc gửi mã xác thực chỉ dựa trên nội dung này.", "Tự mở ứng dụng/kênh liên hệ chính thức để xác minh."], limitations: ["Chế độ demo dùng quy tắc mẫu, không gọi AI."] };
     } else {
-      const quota = await takeQuota({ ip, userId: userState.user?.id, provider: "gemini" });
+      const quota = await takeQuota({ ip, userId: userState.user?.id, provider: "deepseek" });
       if (!quota.allowed) return privateJson({ error: "Bạn đã hết lượt hiện tại. Hãy thử lại sau." }, 429, { "Retry-After": String(quota.retryAfterSeconds) });
       const prompt = buildAnalysisPrompt({ type: input.type, content: source, context: input.context, sender: input.sender, replyTo: input.replyTo, subject: input.subject, ruleFindings });
-      modelReport = await analyzeWithGemini(prompt);
+      modelReport = await analyzeWithDeepSeek(prompt);
     }
 
     const merged = new Map<string, Finding>();
@@ -80,7 +80,7 @@ export async function POST(request: Request) {
       schemaVersion: "1.0", id: randomUUID(), createdAt: new Date().toISOString(), type: input.type, riskLevel,
       summary: modelReport.summary, findings, checklist: modelReport.checklist, limitations,
       source: { id: sourceId, content: source, confirmedOcr: input.confirmedOcr, hostname },
-      model: { text: process.env.SCAMLENS_DEMO_MODE === "true" ? "demo-rules" : process.env.GEMINI_MODEL || "unknown", image: input.type === "image" ? process.env.GEMINI_MODEL : undefined },
+      model: { text: process.env.SCAMLENS_DEMO_MODE === "true" ? "demo-rules" : process.env.DEEPSEEK_MODEL || "unknown", image: input.type === "image" ? process.env.DEEPSEEK_MODEL : undefined },
     });
     return privateJson({ report, demo: process.env.SCAMLENS_DEMO_MODE === "true", saved: false });
   } catch (error) {

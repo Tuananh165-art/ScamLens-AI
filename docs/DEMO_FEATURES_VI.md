@@ -7,9 +7,9 @@ Tài liệu này hướng dẫn kiểm thử các luồng tin nhắn, email, ả
 | Chế độ | Cách hoạt động | Có gọi AI? |
 |---|---|---:|
 | Demo (`SCAMLENS_DEMO_MODE=true`) | Dùng luật/kết quả demo cố định để trình diễn UI | Không |
-| Live (`SCAMLENS_DEMO_MODE=false`) | Tin nhắn/email/URL gọi Gemini; ảnh gọi Gemini OCR rồi bản chữ đã xác nhận cũng gọi Gemini | Có |
+| Live (`SCAMLENS_DEMO_MODE=false`) | Tin nhắn/email/URL gọi DeepSeek; ảnh gọi DeepSeek OCR rồi bản chữ đã xác nhận cũng gọi DeepSeek | Có |
 
-Nút **Thử dữ liệu mẫu** chỉ nạp nội dung mẫu vào form. Nó không tự chứng minh có gọi AI. Mẫu OCR trong luồng ảnh có thể minh họa bước sửa/xác nhận chữ; muốn chứng minh Gemini hoạt động, hãy chọn một ảnh giả lập và chạy OCR.
+Nút **Thử dữ liệu mẫu** chỉ nạp nội dung mẫu vào form. Nó không tự chứng minh có gọi AI. Mẫu OCR trong luồng ảnh có thể minh họa bước sửa/xác nhận chữ; muốn chứng minh DeepSeek hoạt động, hãy chọn một ảnh giả lập và chạy OCR.
 
 ### Chuẩn bị local
 
@@ -23,7 +23,7 @@ Nút **Thử dữ liệu mẫu** chỉ nạp nội dung mẫu vào form. Nó kh�
    ```
 3. Mở `.env` bằng editor và kiểm tra các biến cấu hình (không in/chia sẻ giá trị bí mật):
    - `SCAMLENS_DEMO_MODE`
-   - `GEMINI_API_KEY`, `GEMINI_MODEL` (phân tích chữ/email/URL và OCR ảnh qua Gemini)
+   - `DEEPSEEK_API_KEY`, `DEEPSEEK_MODEL` (phân tích chữ/email/URL và OCR ảnh qua DeepSeek)
 4. Đặt `SCAMLENS_DEMO_MODE=false` để thử live. Không đưa `.env` lên GitHub hoặc chụp màn hình chứa key.
 5. Chạy ứng dụng:
    ```powershell
@@ -37,11 +37,11 @@ Nút **Thử dữ liệu mẫu** chỉ nạp nội dung mẫu vào form. Nó kh�
 
 Các lệnh gửi nội dung tổng hợp, không dùng dữ liệu của bạn. Mỗi lần gọi có thể tiêu quota.
 
-Kiểm tra Gemini với báo cáo văn bản theo schema ScamLens và ảnh PNG trống một pixel:
+Kiểm tra DeepSeek với báo cáo văn bản theo schema ScamLens và ảnh PNG trống một pixel:
 ```powershell
 npm.cmd run smoke:ai
 ```
-Thành công cần có hai dòng `provider: gemini`, `ok: true`, `validJson: true`, `validSchema: true` và model khớp cấu hình. Script không in key, prompt hay nội dung trả lời. Để đánh giá OCR thật, dùng ảnh giả có chữ rõ trong mục 6.
+Thành công cần có hai dòng `provider: deepseek`, `ok: true`, `validJson: true`, `validSchema: true` và model khớp cấu hình. Script không in key, prompt hay nội dung trả lời. Để đánh giá OCR thật, dùng ảnh giả có chữ rõ trong mục 6.
 
 Smoke test chứng minh provider trả lời yêu cầu tối thiểu tại thời điểm chạy. Nó không chứng minh độ chính xác phát hiện lừa đảo, toàn bộ UI, Supabase OAuth hay quota dài hạn.
 
@@ -104,7 +104,7 @@ ScamLens phân tích chuỗi URL và ngữ cảnh do người dùng nhập. Serv
 6. Có thể thử chuỗi giả lập `https://saomai.com.example.test/login`. Trong Network xác nhận không có request tới hostname đó.
 7. Thử `not a URL` để xác nhận validation báo lỗi thay vì truy cập web.
 
-## 6. Ảnh chụp và Gemini OCR
+## 6. Ảnh chụp và DeepSeek OCR
 
 ### Tạo sample an toàn
 
@@ -121,11 +121,11 @@ Xuất JPEG/PNG/WebP. Dùng tên/số giả, không thêm QR, tài khoản, giao
 
 1. Chọn tab **Ảnh chụp**, tải ảnh tổng hợp.
 2. Dùng công cụ che vùng, kiểm tra preview đã che. Thử di chuyển/thay đổi vùng che và xác nhận ảnh preview cập nhật.
-3. Đồng ý chia sẻ ảnh đã xử lý với Gemini, bấm nút đọc ảnh/OCR.
+3. Đồng ý chia sẻ ảnh đã xử lý với DeepSeek, bấm nút đọc ảnh/OCR.
 4. Trong Network xác nhận `POST /api/ocr` trả `200`.
 5. Đối chiếu OCR với ảnh; sửa sai, xóa phần không rõ, không cho model đoán nội dung bị che.
 6. Xác nhận bản đọc. Nếu sửa nội dung sau đó, xác nhận lại bản mới.
-7. Đồng ý gửi bản chữ đã xác nhận cho Gemini, tiếp tục phân tích. Network cần có `POST /api/analyze` sau OCR.
+7. Đồng ý gửi bản chữ đã xác nhận cho DeepSeek, tiếp tục phân tích. Network cần có `POST /api/analyze` sau OCR.
 8. Đối chiếu trích dẫn với bản chữ cuối cùng. Báo cáo phải nêu nguồn là bản đọc ảnh đã được người dùng xác nhận hoặc tương đương.
 9. Thử ảnh mờ/chữ nhỏ: kết quả hợp lệ có thể ghi phần không đọc rõ/thiếu dữ kiện, không bịa tên, số tiền hay trạng thái.
 
@@ -150,15 +150,15 @@ OCR chỉ đọc chữ; không xác thực ảnh, người gửi, ngân hàng ha
 | Nội dung trung tính | Không suy kết luận chỉ từ từ khóa |
 | Email From/Reply-To | Nêu dấu hiệu, không tuyên bố đã xác minh người gửi |
 | URL giả lập | Không phát sinh request đến hostname trong URL |
-| Ảnh giả lập đã che | Gemini OCR đọc ảnh xử lý; Gemini phân tích đúng bản xác nhận |
-| SVG/file giả ảnh | Bị từ chối rõ, không gọi Gemini |
+| Ảnh giả lập đã che | DeepSeek OCR đọc ảnh xử lý; DeepSeek phân tích đúng bản xác nhận |
+| SVG/file giả ảnh | Bị từ chối rõ, không gọi DeepSeek |
 | Demo/live | Demo được đánh dấu; live có request provider thật |
 
 - **401/403 smoke:** key sai/thiếu quyền, endpoint không hợp lệ cho tài khoản, API/model chưa được cấp. Kiểm tra dashboard và tài liệu chính thức; không đoán đổi endpoint/model.
 - **404/model không có:** kiểm tra tên model và endpoint từ dashboard/tài liệu hiện hành, restart Next sau khi đổi env.
 - **Vẫn ra demo:** xác nhận `SCAMLENS_DEMO_MODE=false`, restart server và kiểm tra response `demo`.
 - **429:** đã chạm rate limit/quota; đợi cửa sổ quota, tránh gọi lặp.
-- **OCR được nhưng analyze lỗi:** OCR và phân tích là hai request riêng cùng dùng Gemini; kiểm tra response của `/api/analyze`, quota, log Vercel hoặc chạy smoke Gemini.
+- **OCR được nhưng analyze lỗi:** OCR và phân tích là hai request riêng cùng dùng DeepSeek; kiểm tra response của `/api/analyze`, quota, log Vercel hoặc chạy smoke DeepSeek.
 - **Google sign-in/lịch sử lỗi:** xác nhận Supabase URL/key, bật Google provider, callback `/auth/callback`, Redirect URLs local. Xem [hướng dẫn OAuth](./OAUTH_TROUBLESHOOTING_VI.md).
 - **Không có lệnh smoke:** chạy `npm.cmd run`, kiểm tra script `smoke:ai`, rồi `npm.cmd ci`.
 
@@ -172,7 +172,7 @@ npm.cmd run test
 npm.cmd run test:e2e
 npm.cmd run build
 ```
-Test tự động dùng mock/fixture để tái lập, không chứng minh Gemini live. Kiểm chứng provider riêng bằng smoke script và request Network ở mục 2.
+Test tự động dùng mock/fixture để tái lập, không chứng minh DeepSeek live. Kiểm chứng provider riêng bằng smoke script và request Network ở mục 2.
 
 ## 10. Tìm sample ở đâu và dùng an toàn
 
@@ -188,7 +188,7 @@ Test tự động dùng mock/fixture để tái lập, không chứng minh Gemin
 2. **Tin nhắn (2 phút):** dán mẫu OTP/đe dọa; xem bản che, consent, phân tích, đối chiếu bằng chứng.
 3. **Email (1 phút):** From/Reply-To khác nhau; giải thích đây là dấu hiệu chứ không phải xác minh danh tính.
 4. **URL (1 phút):** nhập domain `.test`; nhấn mạnh app không mở trang.
-5. **Ảnh (2–3 phút):** che vùng, gọi Gemini OCR, sửa/xác nhận, gọi Gemini phân tích.
+5. **Ảnh (2–3 phút):** che vùng, gọi DeepSeek OCR, sửa/xác nhận, gọi DeepSeek phân tích.
 6. **AI live (1 phút):** cho xem smoke gần nhất + Network status `200`, `demo:false`, không để lộ payload.
 7. **Báo cáo/lịch sử (1 phút):** xem checklist, xuất PDF/JSON, nếu đã cấu hình Auth thì lưu/mở/xóa snapshot.
 

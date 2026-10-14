@@ -60,10 +60,10 @@ URL, REST token và HMAC secret chỉ dùng server side; không đưa prefix `NE
 RATE_LIMIT_GUEST_DAILY=5
 RATE_LIMIT_USER_DAILY=20
 RATE_LIMIT_PER_MINUTE=3
-RATE_LIMIT_GEMINI_DAILY=30
+RATE_LIMIT_DEEPSEEK_DAILY=30
 ```
 
-Đây là hạn mức cứng của ứng dụng cho tổng số lượt Gemini (phân tích và OCR), không phải quota miễn phí bảo đảm của Google. Chọn mức thấp hơn nếu tài khoản có quota nhỏ. Upstash hết quota hoặc không kết nối được sẽ làm API từ chối an toàn, thay vì bỏ qua rate limit trong production.
+Đây là hạn mức cứng của ứng dụng cho tổng số lượt DeepSeek (phân tích và OCR), không bao gồm hoặc bảo đảm số dư API miễn phí. Kiểm tra số dư và giới hạn tài khoản tại DeepSeek Platform trước khi chạy live smoke. Upstash hết quota hoặc không kết nối được sẽ làm API từ chối an toàn, thay vì bỏ qua rate limit trong production.
 
 Kiểm tra cấu hình:
 

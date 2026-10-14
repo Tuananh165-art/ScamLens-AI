@@ -24,7 +24,7 @@ Lần đầu tạo `package-lock.json`. Sau đó CI dùng `npm.cmd ci` để cà
 
 ## 3. Cấu hình AI local
 
-Next.js đọc `.env` tại root. ScamLens dùng Gemini cho cả phân tích văn bản/email/URL và OCR ảnh. Không in khóa ra terminal, gửi khóa trong chat, commit `.env` hoặc đưa khóa vào biến `NEXT_PUBLIC_*`.
+Next.js đọc `.env` tại root. ScamLens dùng DeepSeek cho cả phân tích văn bản/email/URL và OCR ảnh. Không in khóa ra terminal, gửi khóa trong chat, commit `.env` hoặc đưa khóa vào biến `NEXT_PUBLIC_*`.
 
 Với một clone mới:
 
@@ -37,11 +37,11 @@ Nhập key từ provider account an toàn. Tên biến cần có:
 
 | Biến | Dùng ở đâu |
 |---|---|
-| `GEMINI_API_KEY` | Gọi Gemini từ server cho phân tích và OCR |
-| `GEMINI_MODEL` | Model Gemini dùng cho văn bản và ảnh, ví dụ `gemini-2.5-flash` nếu tài khoản còn hỗ trợ |
+| `DEEPSEEK_API_KEY` | Gọi DeepSeek từ server cho phân tích và OCR |
+| `DEEPSEEK_MODEL` | Model DeepSeek dùng cho văn bản và ảnh; nên dùng `deepseek-flash` |
 | `SCAMLENS_DEMO_MODE` | Đặt `true` để chạy rule demo, không gửi yêu cầu AI |
 
-Ứng dụng chỉ dùng Gemini, không fallback sang provider khác. Nếu gặp lỗi xác thực/quyền, quota hoặc model không hỗ trợ, kiểm tra trạng thái key/model trong Google AI Studio và [tài liệu model Gemini](https://ai.google.dev/gemini-api/docs/models/gemini-2.5-flash). Không đưa key vào client hay đổi model khi chưa xác nhận model đó được project cấp quyền.
+Ứng dụng chỉ dùng DeepSeek, không fallback sang provider khác. Endpoint là `https://api.deepseek.com/chat/completions`; báo cáo dùng JSON mode và OCR ảnh gửi ảnh đã che dưới dạng data URL base64. Model `deepseek-flash` hỗ trợ ảnh. `deepseek-v4-flash` hiện vẫn được chấp nhận như alias tương thích, nhưng tài liệu khuyên dùng `deepseek-flash`. Xem [Chat Completions](https://api-docs.deepseek.com/api/create-chat-completion/), [Vision](https://api-docs.deepseek.com/guides/vision/) và [JSON Output](https://api-docs.deepseek.com/guides/json_mode/). Dữ liệu được gửi tới DeepSeek API; xem [điều khoản Open Platform](https://cdn.deepseek.com/policies/en-US/deepseek-open-platform-terms-of-service.html) và chỉ gửi dữ liệu bạn có quyền chia sẻ. Không đưa key vào client.
 
 ## 4. Chạy local
 
@@ -63,7 +63,7 @@ Có thể kiểm tra từng adapter bằng đúng một nội dung tổng hợp,
 npm.cmd run smoke:ai
 ```
 
-Lệnh gửi hai yêu cầu tổng hợp ngắn tới Gemini: văn bản với schema báo cáo ScamLens và ảnh PNG trống một pixel với schema OCR. Chỉ metadata, trạng thái JSON/schema và số ký tự output được in; key, prompt và nội dung model không được in. Lệnh tiêu quota Gemini. Đây là kiểm tra kết nối/hợp đồng tối thiểu, không thay cho workflow live trong UI hoặc đánh giá chất lượng trên bộ fixture.
+Lệnh gửi hai yêu cầu tổng hợp ngắn tới DeepSeek: văn bản với schema báo cáo ScamLens và ảnh PNG trống một pixel với schema OCR. Chỉ metadata, trạng thái JSON/schema và số ký tự output được in; key, prompt và nội dung model không được in. Lệnh có thể tiêu số dư API DeepSeek. Đây là kiểm tra kết nối/hợp đồng tối thiểu, không thay cho workflow live trong UI hoặc đánh giá chất lượng trên bộ fixture.
 
 ## 5. Quy trình phân tích
 
@@ -82,9 +82,9 @@ URL chỉ được parse cục bộ. App không tải trang, DNS, redirect hoặ
 
 1. Chọn JPEG/PNG/WebP (tệp gốc tối đa 10 MiB).
 2. Kéo hình chữ nhật lên ảnh để che vùng. Dùng che kín số tài khoản, QR, OTP và tên không cần thiết.
-3. Bấm **Tiếp tục với ảnh đã che**, xem preview rồi bấm **Đọc ảnh đã che bằng Gemini**.
+3. Bấm **Tiếp tục với ảnh đã che**, xem preview rồi bấm **Đọc ảnh đã che bằng DeepSeek**.
 4. Đối chiếu bản đọc với preview, sửa chữ/số chưa chính xác hoặc xóa dữ liệu còn sót.
-5. Xác nhận bản đọc và đồng ý gửi; Gemini phân tích phần chữ đã xác nhận.
+5. Xác nhận bản đọc và đồng ý gửi; DeepSeek phân tích phần chữ đã xác nhận.
 6. Ảnh giao dịch không chứng minh tiền đã vào tài khoản. Mở ứng dụng ngân hàng của chính bạn để kiểm tra.
 
 Trình duyệt re-encode ảnh thành JPEG trước khi upload; metadata gốc bị bỏ. Vùng đã tô kín nằm trong ảnh gửi đi. Nếu che nhầm, chọn lại ảnh nguồn và che lại.

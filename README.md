@@ -24,7 +24,7 @@ Không có dependency service nào thì giao diện và trang hướng dẫn v�
 
 ## Các tính năng
 
-- Tin nhắn, email, URL và ảnh đều dùng Gemini; với ảnh, người dùng xem/sửa/xác nhận OCR trước khi phân tích.
+- Tin nhắn, email, URL và ảnh đều dùng DeepSeek; với ảnh, người dùng xem/sửa/xác nhận OCR trước khi phân tích.
 - Preview bản gửi, che một số mẫu nhạy cảm và cho sửa trước khi gửi.
 - Báo cáo tiếng Việt có dấu hiệu, trích dẫn nguyên văn, checklist và giới hạn kiểm chứng; không in phần trăm rủi ro.
 - Lưu thủ công vào lịch sử Supabase riêng theo RLS; không tự lưu hoặc upload ảnh gốc.
@@ -42,7 +42,7 @@ npm.cmd run test:e2e
 npm.cmd run build
 ```
 
-Gemini live smoke dùng nội dung tổng hợp, kiểm tra JSON báo cáo và nhận ảnh; chỉ chạy có chủ đích vì tiêu quota:
+DeepSeek live smoke dùng nội dung tổng hợp, kiểm tra JSON báo cáo và nhận ảnh; chỉ chạy có chủ đích vì tiêu quota:
 
 ```powershell
 npm.cmd run smoke:ai
@@ -60,7 +60,7 @@ Hướng dẫn đầy đủ:
 
 ## Quyền riêng tư và phạm vi
 
-Trước khi gửi, giao diện yêu cầu xác nhận nhà cung cấp AI sẽ nhận nội dung. Tự rà soát bản đã che: regex không thể bảo đảm tìm thấy mọi dữ liệu riêng tư. Free tier có chính sách lưu hoặc sử dụng đầu vào riêng; chỉ sử dụng dữ liệu được phép chia sẻ. Ảnh được resize, tái mã hóa trong trình duyệt và che vùng được chọn trước khi truyền. Báo cáo chỉ lưu khi người dùng bấm lưu.
+Trước khi gửi, giao diện yêu cầu xác nhận nhà cung cấp AI sẽ nhận nội dung. Tự rà soát bản đã che: regex không thể bảo đảm tìm thấy mọi dữ liệu riêng tư. DeepSeek xử lý nội dung được gửi theo điều khoản của dịch vụ API; không gửi dữ liệu bạn không được phép chia sẻ. Ảnh được resize, tái mã hóa trong trình duyệt và che vùng được chọn trước khi truyền. Báo cáo chỉ lưu khi người dùng bấm lưu.
 
 ScamLens không xác nhận danh tính tổ chức, chất lượng website, giao dịch thành công, chứng cứ pháp lý hoặc một nội dung là “an toàn”. Mỗi kết quả áp dụng cho phần văn bản được đưa vào. Ảnh biên lai không chứng minh tiền đã vào tài khoản.
 

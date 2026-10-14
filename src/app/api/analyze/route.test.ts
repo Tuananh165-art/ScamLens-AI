@@ -1,9 +1,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { analyzeWithGemini } from "@/lib/ai/gemini";
+import { analyzeWithDeepSeek } from "@/lib/ai/deepseek";
 import { POST } from "./route";
 
-vi.mock("@/lib/ai/gemini", () => ({
-  analyzeWithGemini: vi.fn(),
+vi.mock("@/lib/ai/deepseek", () => ({
+  analyzeWithDeepSeek: vi.fn(),
   readImage: vi.fn(),
 }));
 
@@ -43,11 +43,11 @@ describe("POST /api/analyze", () => {
     expect(result.body.report.findings).toHaveLength(0);
   });
 
-  it("uses Gemini for live text analysis and reports the Gemini model", async () => {
+  it("uses DeepSeek for live text analysis and reports the DeepSeek model", async () => {
     vi.stubEnv("SCAMLENS_DEMO_MODE", "false");
-    vi.stubEnv("GEMINI_API_KEY", "test-key");
-    vi.stubEnv("GEMINI_MODEL", "gemini-test-model");
-    vi.mocked(analyzeWithGemini).mockResolvedValue({
+    vi.stubEnv("DEEPSEEK_API_KEY", "test-key");
+    vi.stubEnv("DEEPSEEK_MODEL", "deepseek-test-model");
+    vi.mocked(analyzeWithDeepSeek).mockResolvedValue({
       summary: "Nội dung yêu cầu cung cấp mã xác thực.",
       riskLevel: "high",
       findings: [{ category: "secret_request", severity: "high", title: "Yêu cầu OTP", explanation: "Người gửi đề nghị gửi mã xác thực qua tin nhắn.", evidence: "Gửi OTP ngay" }],
@@ -59,21 +59,21 @@ describe("POST /api/analyze", () => {
 
     expect(result.status).toBe(200);
     expect(result.body.demo).toBe(false);
-    expect(result.body.report.model.text).toBe("gemini-test-model");
+    expect(result.body.report.model.text).toBe("deepseek-test-model");
     expect(result.body.report.findings.some((item: { evidence: string }) => item.evidence === "Gửi OTP ngay")).toBe(true);
-    expect(analyzeWithGemini).toHaveBeenCalledOnce();
-    expect(analyzeWithGemini).toHaveBeenCalledWith(expect.stringContaining("SOURCE"));
+    expect(analyzeWithDeepSeek).toHaveBeenCalledOnce();
+    expect(analyzeWithDeepSeek).toHaveBeenCalledWith(expect.stringContaining("SOURCE"));
   });
 
-  it("maps Gemini authorization failures to a safe provider error", async () => {
+  it("maps DeepSeek authorization failures to a safe provider error", async () => {
     vi.stubEnv("SCAMLENS_DEMO_MODE", "false");
-    vi.stubEnv("GEMINI_API_KEY", "test-key");
-    vi.stubEnv("GEMINI_MODEL", "gemini-test-model");
-    vi.mocked(analyzeWithGemini).mockRejectedValue(new Error("gemini_auth_failed"));
+    vi.stubEnv("DEEPSEEK_API_KEY", "test-key");
+    vi.stubEnv("DEEPSEEK_MODEL", "deepseek-test-model");
+    vi.mocked(analyzeWithDeepSeek).mockRejectedValue(new Error("deepseek_auth_failed"));
 
     const result = await analyze("Mời kiểm tra thông báo.");
 
     expect(result.status).toBe(502);
-    expect(result.body.error).toContain("Gemini");
+    expect(result.body.error).toContain("DeepSeek");
   });
 });

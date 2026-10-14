@@ -32,7 +32,7 @@ Không lưu secret trong GitHub Actions CI. `.env.example` chỉ chứa placehol
 3. Để framework preset là Next.js. Root Directory là repo root; giữ build command `npm run build` và install command `npm install` hoặc `npm ci`.
 4. Chưa deploy cho đến khi environment variables đã nhập.
 5. Trong Project Settings → Environment Variables thêm các nhóm:
-   - AI: `GEMINI_API_KEY`, `GEMINI_MODEL`.
+   - AI: `DEEPSEEK_API_KEY`, `DEEPSEEK_MODEL`.
    - Supabase: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
    - URL app: `NEXT_PUBLIC_APP_URL=https://<DOMAIN>`.
    - Upstash: `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`, `RATE_LIMIT_HMAC_SECRET`.
@@ -41,7 +41,7 @@ Không lưu secret trong GitHub Actions CI. `.env.example` chỉ chứa placehol
 6. Chọn Production và Preview cho các biến phù hợp; tránh copy secret sang branch không tin cậy. Nhấn Save.
 7. Deploy; kiểm tra build log không in env.
 
-Sau migration provider, chỉ giữ `GEMINI_API_KEY` và `GEMINI_MODEL` trong nhóm AI. Xóa các biến Zen cũ (`AI_ENDPOINT`, `AI_API_KEY`, `AI_MODEL`) khỏi Production/Preview rồi redeploy để áp dụng cấu hình mới.
+Sau migration provider, chỉ giữ `DEEPSEEK_API_KEY` và `DEEPSEEK_MODEL` trong nhóm AI. Xóa `GEMINI_API_KEY`, `GEMINI_MODEL` và các biến Zen cũ (`AI_ENDPOINT`, `AI_API_KEY`, `AI_MODEL`) khỏi Production/Preview rồi redeploy để áp dụng cấu hình mới.
 
 AI keys và Upstash REST token luôn server-only. Supabase URL và anon/publishable key là key public có RLS bảo vệ; tuyệt đối không cấu hình service-role key.
 

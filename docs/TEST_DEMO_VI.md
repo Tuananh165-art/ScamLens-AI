@@ -20,7 +20,7 @@ npm.cmd run test:e2e
 
 Unit test kiểm tra che dữ liệu, trích dẫn source và parse URL. E2E kiểm tra trang, privacy gate và hướng dẫn. CI không gọi AI thật.
 
-Kết quả probe ban đầu ngày 15/10/2026: OpenCode Zen trả HTTP 403; probe Gemini REST ban đầu nhận HTTP 200 nhưng text chưa đạt schema nên không được coi là pass. Smoke SDK Gemini trước đó đã pass text và OCR ảnh PNG giả lập. Sau khi đồng bộ giới hạn response schema với Zod, smoke mới nhất cho text nhận HTTP 429, còn OCR ảnh vẫn pass; kiểm tra Google AI Studio để xem giới hạn RPM/TPM/RPD/quota rồi chạy lại sau khi reset. Lint, typecheck, 13 unit/API tests, 5 Playwright E2E và production build pass local. Smoke ảnh xác nhận kết nối/contract, không chứng minh độ chính xác OCR trên ảnh giao dịch thật. Supabase/RLS, Upstash, workflow live qua UI và Vercel vẫn cần nghiệm thu riêng. Theo dõi ở [roadmap](ROADMAP_VI.md).
+Migration DeepSeek ngày 15/10/2026 đổi toàn bộ runtime khỏi Gemini. Smoke live DeepSeek chưa chạy trong migration để tránh tự tiêu số dư API; hướng dẫn smoke có sẵn bên dưới và chỉ nên chạy sau khi xác nhận tài khoản có balance/quyền model. Unit/API, lint, typecheck, E2E và build phải được chạy lại trên source này. Chất lượng OCR trên ảnh thật, Supabase/RLS, Upstash, workflow live qua UI và Vercel vẫn cần nghiệm thu riêng. Theo dõi ở [roadmap](ROADMAP_VI.md).
 
 ## 2. Demo ngắn trong 8–10 phút
 

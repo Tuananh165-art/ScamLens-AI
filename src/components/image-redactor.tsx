@@ -81,6 +81,6 @@ export function ImageRedactor({ onPrepared, onClear }: { onPrepared(file: File):
       <button className="primary-button full-button" type="button" onClick={prepare}><ShieldCheck size={17} /> Tiếp tục với ảnh đã che</button>
     </>}
     {error && <p className="inline-error" role="alert">{error}</p>}
-    <p className="micro-note">Ảnh hiển thị được tái mã hóa trong trình duyệt. Vùng bạn che được tô kín trước khi gửi Gemini; ảnh gốc không tải lên server.</p>
+    <p className="micro-note">Ảnh hiển thị được tái mã hóa trong trình duyệt. Vùng bạn che được tô kín trước khi gửi DeepSeek; ảnh gốc không tải lên server.</p>
   </div>;
 }
