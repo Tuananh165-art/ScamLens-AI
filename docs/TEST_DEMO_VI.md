@@ -13,13 +13,14 @@ npm.cmd run build
 Nếu Playwright chưa cài Chromium:
 
 ```powershell
+$env:PLAYWRIGHT_BROWSERS_PATH = "$PWD\.playwright"
 npx.cmd playwright install chromium
 npm.cmd run test:e2e
 ```
 
 Unit test kiểm tra che dữ liệu, trích dẫn source và parse URL. E2E kiểm tra trang, privacy gate và hướng dẫn. CI không gọi AI thật.
 
-Kết quả chạy cuối trong workspace ngày 14/10/2026: lint, typecheck, 11 unit/API tests, 3 Playwright Chromium tests và production build đều pass. Gemini smoke với ảnh một pixel tổng hợp trả JSON hợp lệ. Zen smoke nhận 403 ở cả endpoint cấu hình và endpoint tài liệu hiện hành; đây là blocker quyền truy cập provider, không phải bằng chứng pipeline live đã hoạt động. Supabase/RLS, Upstash và Vercel cần project/account bên ngoài nên vẫn chưa được nghiệm thu live. Theo dõi chi tiết ở [roadmap](ROADMAP_VI.md).
+Kết quả probe ban đầu ngày 15/10/2026: OpenCode Zen trả HTTP 403; probe Gemini REST ban đầu nhận HTTP 200 nhưng text chưa đạt schema nên không được coi là pass. Sau migration, `npm.cmd run smoke:ai` đã pass cả structured text report và JSON OCR trên ảnh PNG giả lập với SDK Gemini. Lint, typecheck, 13 unit/API tests, 5 Playwright E2E và production build cũng pass local. Smoke ảnh xác nhận kết nối/contract, không chứng minh độ chính xác OCR trên ảnh giao dịch thật. Supabase/RLS, Upstash, workflow live qua UI và Vercel vẫn cần nghiệm thu riêng. Theo dõi ở [roadmap](ROADMAP_VI.md).
 
 ## 2. Demo ngắn trong 8–10 phút
 

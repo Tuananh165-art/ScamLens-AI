@@ -11,7 +11,7 @@
     "test": "vitest run src",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
-    "smoke:ai": "node scripts/ai-smoke.mjs"
+    "smoke:ai": "node scripts/gemini-smoke.mjs"
   },
   "dependencies": {
     "@google/genai": "^1.42.0",

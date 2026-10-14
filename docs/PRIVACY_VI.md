@@ -4,15 +4,15 @@
 
 | Luồng | Truyền đi | Lưu trong app |
 |---|---|---|
-| Tin nhắn/email/URL | Bản đã che sau khi người dùng xem và consent → OpenCode Zen | Không lưu đến khi bấm Lưu |
-| Ảnh | Ảnh tái mã hóa/đã che trên browser → Gemini; OCR được sửa và xác nhận → Zen | Ảnh gốc không lưu; report chữ chỉ lưu khi bấm Lưu |
+| Tin nhắn/email/URL | Bản đã che sau khi người dùng xem và consent → Gemini | Không lưu đến khi bấm Lưu |
+| Ảnh | Ảnh tái mã hóa/đã che trên browser → Gemini OCR; bản chữ được sửa/xác nhận → Gemini phân tích | Ảnh gốc không lưu; report chữ chỉ lưu khi bấm Lưu |
 | Tài khoản | OAuth Google qua Supabase Auth | Session cookie Supabase |
 | Lịch sử | Snapshot đã che vào Supabase PostgreSQL | RLS owner-only; xóa trong màn hình lịch sử |
 | Giới hạn gọi | Hash HMAC của user ID/IP, bộ đếm → Upstash | Chỉ khóa hash và số đếm tạm thời |
 
 ## Bảo vệ được thực hiện
 
-- Không xuất `AI_API_KEY`, `GEMINI_API_KEY`, Upstash token hoặc HMAC secret ra browser bundle.
+- Không xuất `GEMINI_API_KEY`, Upstash token hoặc HMAC secret ra browser bundle.
 - Schema validation tại đầu vào và phản hồi AI; output không được render như HTML.
 - Bằng chứng được kiểm tra là substring của source. Nội dung không khớp không trở thành finding hiển thị.
 - Không mở URL đáng ngờ; parse URL không tạo yêu cầu mạng đến hostname do người dùng nhập.

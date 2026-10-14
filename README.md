@@ -24,7 +24,7 @@ Không có dependency service nào thì giao diện và trang hướng dẫn v�
 
 ## Các tính năng
 
-- Tin nhắn, email, URL và ảnh, gồm luồng Gemini đọc ảnh → người dùng sửa/xác nhận → Zen phân tích bản chữ đã xác nhận.
+- Tin nhắn, email, URL và ảnh đều dùng Gemini; với ảnh, người dùng xem/sửa/xác nhận OCR trước khi phân tích.
 - Preview bản gửi, che một số mẫu nhạy cảm và cho sửa trước khi gửi.
 - Báo cáo tiếng Việt có dấu hiệu, trích dẫn nguyên văn, checklist và giới hạn kiểm chứng; không in phần trăm rủi ro.
 - Lưu thủ công vào lịch sử Supabase riêng theo RLS; không tự lưu hoặc upload ảnh gốc.
@@ -42,11 +42,10 @@ npm.cmd run test:e2e
 npm.cmd run build
 ```
 
-Live provider checks dùng dữ liệu giả, chỉ chạy có chủ đích và tách riêng khỏi CI:
+Gemini live smoke dùng nội dung tổng hợp, kiểm tra JSON báo cáo và nhận ảnh; chỉ chạy có chủ đích vì tiêu quota:
 
 ```powershell
-npm.cmd run smoke:ai -- zen
-npm.cmd run smoke:ai -- gemini
+npm.cmd run smoke:ai
 ```
 
 Hướng dẫn đầy đủ:

@@ -13,7 +13,7 @@ function hashed(value: string) {
   return createHmac("sha256", secret).update(value).digest("hex").slice(0, 32);
 }
 
-export async function takeQuota(input: { ip: string; userId?: string; provider: "zen" | "gemini" }): Promise<LimitResult> {
+export async function takeQuota(input: { ip: string; userId?: string; provider: "gemini" }): Promise<LimitResult> {
   const minuteLimit = numberEnv("RATE_LIMIT_PER_MINUTE", 3);
   const dailyLimit = input.userId ? numberEnv("RATE_LIMIT_USER_DAILY", 20) : numberEnv("RATE_LIMIT_GUEST_DAILY", 5);
   const actor = input.userId ? `user:${input.userId}` : `guest:${input.ip}`;
@@ -35,7 +35,7 @@ export async function takeQuota(input: { ip: string; userId?: string; provider: 
       if (dailyCount > dailyLimit) return { allowed: false, retryAfterSeconds: 86_400, backend };
       const providerCount = await redis.incr(providerKey);
       if (providerCount === 1) await redis.expire(providerKey, 90_000);
-      const providerCap = input.provider === "zen" ? numberEnv("RATE_LIMIT_ZEN_DAILY", 100) : numberEnv("RATE_LIMIT_GEMINI_DAILY", 30);
+      const providerCap = numberEnv("RATE_LIMIT_GEMINI_DAILY", 30);
       return { allowed: dailyCount <= dailyLimit && providerCount <= providerCap, retryAfterSeconds: 86_400, backend };
     } catch {
       throw new Error("quota_unavailable");
@@ -56,7 +56,7 @@ export async function takeQuota(input: { ip: string; userId?: string; provider: 
   const daily = hitLocal(`daily:${new Date().toISOString().slice(0, 10)}:${actor}`, now, WINDOW_DAY, dailyLimit);
   if (!daily.allowed) return { ...daily, backend };
   const provider = hitLocal(`provider:${new Date().toISOString().slice(0, 10)}:${input.provider}`, now, WINDOW_DAY,
-    input.provider === "zen" ? numberEnv("RATE_LIMIT_ZEN_DAILY", 100) : numberEnv("RATE_LIMIT_GEMINI_DAILY", 30));
+    numberEnv("RATE_LIMIT_GEMINI_DAILY", 30));
   return { ...provider, backend };
 }
 

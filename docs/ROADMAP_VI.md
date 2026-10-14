@@ -1,13 +1,14 @@
 # Roadmap và nghiệm thu ScamLens AI
 
-Trạng thái ghi nhận ngày 14/10/2026. `PASS` chỉ áp dụng cho bằng chứng local ghi bên dưới; cấu hình trên tài khoản bên ngoài vẫn cần nghiệm thu riêng.
+Trạng thái migration ghi nhận ngày 15/10/2026. `PASS` chỉ áp dụng cho bằng chứng local ghi bên dưới; cấu hình trên tài khoản bên ngoài vẫn cần nghiệm thu riêng.
 
 ## M1 — Nền tảng và kết nối AI
 
 - [x] Next.js App Router, TypeScript, Tailwind, lockfile, scripts và `.gitignore`.
-- [x] Adapter server-side cho Zen và Gemini; lỗi provider được chuyển thành lỗi an toàn, không fallback.
-- [x] `npm.cmd run smoke:ai -- gemini` — `PASS`: `gemini-2.5-flash`, JSON hợp lệ, finish reason `STOP`, dùng ảnh một pixel tổng hợp.
-- [ ] Zen live — `BLOCKED`: key/model hiện cấu hình nhận HTTP 403 ở endpoint trong `.env` (`/zen/v1/chat/completions`) và cả endpoint `/inference/v1/chat/completions` được tài liệu hiện hành công bố. Response body bị loại khỏi log. Cần kiểm tra quyền key, model và tài khoản OpenCode; không đổi model hay bật billing tự động.
+- [x] Adapter server-side Gemini dùng structured output và cùng model cho văn bản/ảnh; validation Zod, timeout và lỗi an toàn.
+- [x] Gemini live text report — `npm.cmd run smoke:ai` trả JSON hợp lệ và qua schema `ModelReport` bằng `gemini-2.5-flash`.
+- [x] Gemini live image input — smoke nhận ảnh PNG giả lập và trả JSON OCR qua schema. Đây chỉ xác nhận kết nối/contract; chưa đánh giá chất lượng OCR trên ảnh giao dịch thực tế.
+- [x] Zen được loại khỏi runtime source; sau deploy cần xóa ba biến `AI_ENDPOINT`, `AI_API_KEY`, `AI_MODEL` khỏi môi trường Vercel.
 
 ## M2 — Văn bản, email, URL và bằng chứng
 
@@ -15,12 +16,12 @@ Trạng thái ghi nhận ngày 14/10/2026. `PASS` chỉ áp dụng cho bằng ch
 - [x] Luật phân tích, schema có cấu trúc, đối chiếu bằng chứng với nguồn và tính lại mức rủi ro từ finding hợp lệ.
 - [x] Parse URL cục bộ bằng WHATWG URL và `tldts`; không gửi request đến hostname người dùng nhập.
 - [x] Xuất/print báo cáo, checklist kiểm chứng và giới hạn.
-- [ ] Bộ acceptance 30 fixture mục tiêu — chưa hoàn tất; hiện có 11 unit/API tests cùng 3 browser tests. Cần mở rộng các fixture phủ đủ nhóm tình huống trước khi tuyên bố chất lượng phân tích đã được đánh giá rộng.
+- [ ] Bộ acceptance 30 fixture mục tiêu — chưa hoàn tất; hiện có 13 unit/API tests cùng 5 browser tests. Cần mở rộng các fixture phủ đủ nhóm tình huống trước khi tuyên bố chất lượng phân tích đã được đánh giá rộng.
 
 ## M3 — Ảnh và xác nhận OCR
 
 - [x] Upload một ảnh, giới hạn kích thước, kiểm tra MIME/signature; browser re-encode và vẽ vùng che đặc trước upload.
-- [x] Gemini đọc ảnh đã xử lý; người dùng xem/sửa/xác nhận bản chữ trước khi gửi Zen.
+- [x] Gemini đọc ảnh đã xử lý; người dùng xem/sửa/xác nhận bản chữ trước khi gửi Gemini phân tích.
 - [x] Ảnh gốc không được lưu cùng báo cáo.
 - [ ] Bộ sáu ảnh fixture và E2E sửa OCR — chưa có bằng chứng tự động trong phiên này; demo thủ công chỉ dùng ảnh giả.
 
@@ -36,7 +37,7 @@ Trạng thái ghi nhận ngày 14/10/2026. `PASS` chỉ áp dụng cho bằng ch
 
 - [x] Giao diện responsive và tài liệu setup, dịch vụ, riêng tư, test/demo, deploy bằng tiếng Việt.
 - [x] GitHub Actions chạy lint, typecheck, unit test và build với Node.js 24; không gọi AI trong CI.
-- [x] Lint, typecheck, 11 test, 3 Playwright E2E và production build — `PASS` trong workspace local.
+- [x] Lint, typecheck, 13 unit/API tests, 5 Playwright E2E và production build — `PASS` trong workspace local ngày 15/10/2026.
 - [ ] GitHub push và Vercel deployment — `BLOCKED` bởi chưa kết nối repo/tài khoản; chưa có URL deployment để smoke test.
 
 ## Lệnh tái hiện kiểm tra local
@@ -53,13 +54,12 @@ npm.cmd run test:e2e
 npm.cmd run build
 ```
 
-Smoke test AI là bước live riêng, có thể tiêu quota provider:
+Smoke test AI là bước live riêng, gọi hai lần Gemini và có thể tiêu quota:
 
 ```powershell
-npm.cmd run smoke:ai -- gemini
-npm.cmd run smoke:ai -- zen
+npm.cmd run smoke:ai
 ```
 
 ## Kết luận nghiệm thu hiện tại
 
-Ứng dụng đã có source, workflow chính, migration, CI và hướng dẫn có thể review; toàn bộ kiểm tra local phía trên đạt. Chưa thể đánh dấu project hoàn thành theo gate ban đầu vì Zen trả 403, dịch vụ Supabase/Upstash chưa được kết nối hoặc kiểm tra quyền cách ly live, và chưa có GitHub/Vercel deployment. Không dùng demo-rules hoặc Gemini smoke thành công để suy ra Zen đang hoạt động.
+Migration mã nguồn sang Gemini đã qua live smoke cho structured text và image input, cùng lint, typecheck, 13 unit/API tests, 5 Playwright E2E và production build tại local. E2E cần Chromium Playwright cài local. Chưa có bằng chứng kiểm thử chất lượng OCR trên ảnh thật, gọi toàn bộ workflow `/api/analyze` qua UI với provider live, Supabase/RLS, Upstash production quota hoặc Vercel deployment. Vercel cần redeploy với Gemini env; sau đó xóa các biến Zen cũ khỏi Vercel. Demo mode không chứng minh Gemini live.

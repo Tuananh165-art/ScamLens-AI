@@ -24,7 +24,7 @@ Lần đầu tạo `package-lock.json`. Sau đó CI dùng `npm.cmd ci` để cà
 
 ## 3. Cấu hình AI local
 
-Repo ban đầu có `.env` với model Zen và Gemini được cấu hình sẵn. Next.js đọc `.env` tại root. Không in khóa ra terminal, gửi khóa trong chat, commit `.env` hoặc đưa khóa vào biến `NEXT_PUBLIC_*`.
+Next.js đọc `.env` tại root. ScamLens dùng Gemini cho cả phân tích văn bản/email/URL và OCR ảnh. Không in khóa ra terminal, gửi khóa trong chat, commit `.env` hoặc đưa khóa vào biến `NEXT_PUBLIC_*`.
 
 Với một clone mới:
 
@@ -37,14 +37,11 @@ Nhập key từ provider account an toàn. Tên biến cần có:
 
 | Biến | Dùng ở đâu |
 |---|---|
-| `AI_ENDPOINT` | HTTPS OpenCode Zen Chat Completions endpoint |
-| `AI_API_KEY` | Gọi Zen từ server |
-| `AI_MODEL` | Model văn bản |
-| `GEMINI_API_KEY` | Gọi Gemini từ server |
-| `GEMINI_MODEL` | Model đọc ảnh, ví dụ model hiện có trong `.env` |
+| `GEMINI_API_KEY` | Gọi Gemini từ server cho phân tích và OCR |
+| `GEMINI_MODEL` | Model Gemini dùng cho văn bản và ảnh, ví dụ `gemini-2.5-flash` nếu tài khoản còn hỗ trợ |
 | `SCAMLENS_DEMO_MODE` | Đặt `true` để chạy rule demo, không gửi yêu cầu AI |
 
-Ứng dụng không tự sửa endpoint/model và không đổi provider khi lỗi. OpenCode đổi endpoint giữa các phiên bản; nếu gặp `Nhà cung cấp từ chối khóa` hoặc `Địa chỉ dịch vụ...`, kiểm tra endpoint trong [tài liệu OpenCode](https://opencode.ai/docs/zen/) và model trong tài khoản hiện dùng. Gemini có thể giới hạn model cũ với tài khoản mới; kiểm tra [model Gemini](https://ai.google.dev/gemini-api/docs/models/gemini-2.5-flash) và quyền model trong Google AI Studio.
+Ứng dụng chỉ dùng Gemini, không fallback sang provider khác. Nếu gặp lỗi xác thực/quyền, quota hoặc model không hỗ trợ, kiểm tra trạng thái key/model trong Google AI Studio và [tài liệu model Gemini](https://ai.google.dev/gemini-api/docs/models/gemini-2.5-flash). Không đưa key vào client hay đổi model khi chưa xác nhận model đó được project cấp quyền.
 
 ## 4. Chạy local
 
@@ -63,11 +60,10 @@ Mở `http://localhost:3000`. Xem health mà không tiết lộ secret:
 Có thể kiểm tra từng adapter bằng đúng một nội dung tổng hợp, không in kết quả hay key:
 
 ```powershell
-npm.cmd run smoke:ai -- zen
-npm.cmd run smoke:ai -- gemini
+npm.cmd run smoke:ai
 ```
 
-Mỗi lệnh gửi một yêu cầu tổng hợp ngắn và chỉ in provider, model, HTTP status hoặc trạng thái JSON; nội dung phản hồi và secret không được in. Xem quota/billing của tài khoản provider trước khi chạy; free model/free tier có giới hạn, và cấu hình billing riêng có thể thay đổi chi phí. Lệnh Zen kiểm tra endpoint đã có trong env, không tự thay endpoint. Lượt kiểm tra bàn giao: Gemini trả JSON hợp lệ; Zen trả HTTP 403 ở endpoint `.env` và endpoint hiện được [tài liệu OpenCode Zen](https://opencode.ai/docs/zen/) công bố. Xem [roadmap nghiệm thu](ROADMAP_VI.md) để biết phần cần cấu hình lại ở tài khoản provider.
+Lệnh gửi hai yêu cầu tổng hợp ngắn tới Gemini: văn bản với schema báo cáo ScamLens và ảnh PNG trống một pixel với schema OCR. Chỉ metadata, trạng thái JSON/schema và số ký tự output được in; key, prompt và nội dung model không được in. Lệnh tiêu quota Gemini. Đây là kiểm tra kết nối/hợp đồng tối thiểu, không thay cho workflow live trong UI hoặc đánh giá chất lượng trên bộ fixture.
 
 ## 5. Quy trình phân tích
 
@@ -88,7 +84,7 @@ URL chỉ được parse cục bộ. App không tải trang, DNS, redirect hoặ
 2. Kéo hình chữ nhật lên ảnh để che vùng. Dùng che kín số tài khoản, QR, OTP và tên không cần thiết.
 3. Bấm **Tiếp tục với ảnh đã che**, xem preview rồi bấm **Đọc ảnh đã che bằng Gemini**.
 4. Đối chiếu bản đọc với preview, sửa chữ/số chưa chính xác hoặc xóa dữ liệu còn sót.
-5. Xác nhận bản đọc và đồng ý gửi; Zen phân tích phần chữ đã xác nhận.
+5. Xác nhận bản đọc và đồng ý gửi; Gemini phân tích phần chữ đã xác nhận.
 6. Ảnh giao dịch không chứng minh tiền đã vào tài khoản. Mở ứng dụng ngân hàng của chính bạn để kiểm tra.
 
 Trình duyệt re-encode ảnh thành JPEG trước khi upload; metadata gốc bị bỏ. Vùng đã tô kín nằm trong ảnh gửi đi. Nếu che nhầm, chọn lại ảnh nguồn và che lại.
