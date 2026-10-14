@@ -12,24 +12,25 @@ const ocrSchema = z.object({
 const reportResponseSchema = {
   type: Type.OBJECT,
   properties: {
-    summary: { type: Type.STRING },
+    summary: { type: Type.STRING, minLength: "3", maxLength: "600" },
     riskLevel: { type: Type.STRING, enum: ["low", "medium", "high", "insufficient"] },
     findings: {
       type: Type.ARRAY,
+      maxItems: "12",
       items: {
         type: Type.OBJECT,
         properties: {
           category: { type: Type.STRING, enum: ["impersonation", "money_request", "urgency", "secret_request", "suspicious_url", "inconsistency"] },
           severity: { type: Type.STRING, enum: ["low", "medium", "high"] },
-          title: { type: Type.STRING },
-          explanation: { type: Type.STRING },
-          evidence: { type: Type.STRING },
+          title: { type: Type.STRING, minLength: "3", maxLength: "100" },
+          explanation: { type: Type.STRING, minLength: "8", maxLength: "700" },
+          evidence: { type: Type.STRING, minLength: "2", maxLength: "300" },
         },
         required: ["category", "severity", "title", "explanation", "evidence"],
       },
     },
-    checklist: { type: Type.ARRAY, items: { type: Type.STRING } },
-    limitations: { type: Type.ARRAY, items: { type: Type.STRING } },
+    checklist: { type: Type.ARRAY, maxItems: "8", items: { type: Type.STRING, minLength: "5", maxLength: "220" } },
+    limitations: { type: Type.ARRAY, maxItems: "8", items: { type: Type.STRING, minLength: "5", maxLength: "200" } },
   },
   required: ["summary", "riskLevel", "findings", "checklist", "limitations"],
 };

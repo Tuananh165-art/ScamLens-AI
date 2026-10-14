@@ -6,8 +6,8 @@ Trạng thái migration ghi nhận ngày 15/10/2026. `PASS` chỉ áp dụng cho
 
 - [x] Next.js App Router, TypeScript, Tailwind, lockfile, scripts và `.gitignore`.
 - [x] Adapter server-side Gemini dùng structured output và cùng model cho văn bản/ảnh; validation Zod, timeout và lỗi an toàn.
-- [x] Gemini live text report — `npm.cmd run smoke:ai` trả JSON hợp lệ và qua schema `ModelReport` bằng `gemini-2.5-flash`.
-- [x] Gemini live image input — smoke nhận ảnh PNG giả lập và trả JSON OCR qua schema. Đây chỉ xác nhận kết nối/contract; chưa đánh giá chất lượng OCR trên ảnh giao dịch thực tế.
+- [ ] Gemini live text report — smoke trước đó đã qua schema; lần kiểm tra mới nhất sau khi đồng bộ giới hạn schema nhận HTTP 429. Cần kiểm tra quota trong Google AI Studio và chạy lại sau khi hạn mức reset.
+- [x] Gemini live image input — smoke nhận ảnh PNG giả lập và trả JSON OCR qua schema ở lần kiểm tra gần nhất. Đây chỉ xác nhận kết nối/contract; chưa đánh giá chất lượng OCR trên ảnh giao dịch thực tế.
 - [x] Zen được loại khỏi runtime source; sau deploy cần xóa ba biến `AI_ENDPOINT`, `AI_API_KEY`, `AI_MODEL` khỏi môi trường Vercel.
 
 ## M2 — Văn bản, email, URL và bằng chứng
@@ -62,4 +62,4 @@ npm.cmd run smoke:ai
 
 ## Kết luận nghiệm thu hiện tại
 
-Migration mã nguồn sang Gemini đã qua live smoke cho structured text và image input, cùng lint, typecheck, 13 unit/API tests, 5 Playwright E2E và production build tại local. E2E cần Chromium Playwright cài local. Chưa có bằng chứng kiểm thử chất lượng OCR trên ảnh thật, gọi toàn bộ workflow `/api/analyze` qua UI với provider live, Supabase/RLS, Upstash production quota hoặc Vercel deployment. Vercel cần redeploy với Gemini env; sau đó xóa các biến Zen cũ khỏi Vercel. Demo mode không chứng minh Gemini live.
+Migration mã nguồn sang Gemini đã qua lint, typecheck, 13 unit/API tests, 5 Playwright E2E và production build tại local. Gemini image-input smoke pass; text smoke trước đó pass nhưng lần gần nhất trả HTTP 429 sau khi schema được siết khớp với Zod, nên xác nhận text live đang chờ quota và smoke lại. Chưa có bằng chứng kiểm thử chất lượng OCR trên ảnh thật, gọi toàn bộ workflow `/api/analyze` qua UI với provider live, Supabase/RLS, Upstash production quota hoặc Vercel deployment. Vercel cần redeploy với Gemini env; sau đó xóa các biến Zen cũ khỏi Vercel. Demo mode không chứng minh Gemini live.
