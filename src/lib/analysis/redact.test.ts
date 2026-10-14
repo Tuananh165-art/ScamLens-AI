@@ -24,4 +24,10 @@ describe("redactSensitiveText", () => {
     expect(redactSensitiveText("Hẹn gặp lúc 3 giờ chiều nhé.")).toBe("Hẹn gặp lúc 3 giờ chiều nhé.");
     expect(hasSensitiveText("Bản tin thường ngày.")).toBe(false);
   });
+
+  it("does not redact an OTP request when no OTP value is present", () => {
+    const message = "Hãy gửi mã OTP để xác minh ngay.";
+    expect(redactSensitiveText(message)).toBe(message);
+    expect(hasSensitiveText(message)).toBe(false);
+  });
 });

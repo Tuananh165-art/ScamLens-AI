@@ -11,8 +11,10 @@ test("home renders Vietnamese analysis choices and privacy notice", async ({ pag
 test("message can be prepared and its review checkbox gates sending", async ({ page }) => {
   await page.goto("/");
   await page.getByLabel("Nội dung tin nhắn").fill("[MẪU GIẢ LẬP] Gửi OTP ngay để tránh khóa tài khoản.");
-  await page.getByRole("button", { name: /Chuẩn bị kiểm tra/ }).click();
-  await expect(page.getByText("Xem lại bản sẽ gửi đến AI")).toBeVisible();
+  await page.getByRole("button", { name: /Xem trước nội dung sẽ gửi/ }).click();
+  await expect(page.getByText("Nội dung sẽ gửi đến AI")).toBeVisible();
+  await expect(page.getByText("Không có mẫu được nhận diện")).toBeVisible();
+  await expect(page.getByText(/Không có mẫu trong danh sách tự che/)).toBeVisible();
   await expect(page.getByRole("button", { name: /Phân tích tin nhắn/ })).toHaveCount(0);
   await page.getByLabel(/Tôi đã đối chiếu nội dung/).check();
   await page.getByLabel(/nhà cung cấp AI bên ngoài/).check();

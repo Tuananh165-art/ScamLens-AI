@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import {
   ArrowRight, ArrowUpRight, BadgeCheck, BookOpenText, Check,
@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import { ImageRedactor } from "@/components/image-redactor";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { redactSensitiveText, hasSensitiveText } from "@/lib/analysis/redact";
+import { redactSensitiveText } from "@/lib/analysis/redact";
 import type { AnalysisReport, AnalyzeRequest } from "@/lib/analysis/schema";
 
 type InputType = "message" | "email" | "image" | "url";
@@ -63,7 +63,6 @@ export function HomeApp({ signedIn, email, authConfigured }: Props) {
   const imageStageReady = imageStep === "confirmed" && ocrConfirmed && Boolean(ocrText.trim());
   const requiresPreparation = type !== "image" && prepared;
   const canAnalyze = type === "image" ? imageStageReady && privacyAcknowledged : requiresPreparation && acknowledged && privacyAcknowledged;
-  const foundSensitiveData = useMemo(() => hasSensitiveText([content, sender, replyTo, subject].join("\n")), [content, sender, replyTo, subject]);
 
   function switchType(next: InputType) {
     setType(next); setContent(""); setSender(""); setReplyTo(""); setSubject(""); setContext("");
@@ -85,9 +84,14 @@ export function HomeApp({ signedIn, email, authConfigured }: Props) {
   function prepareText() {
     if (!content.trim()) { setFeedback({ kind: "error", text: "Hãy nhập nội dung cần kiểm tra trước." }); return; }
     const masked = redactSensitiveText(content);
-    setHadAutoMask(masked !== content || hasSensitiveText([sender, replyTo, subject].join("\n")));
-    setContent(masked); setSender(redactSensitiveText(sender)); setReplyTo(redactSensitiveText(replyTo)); setSubject(redactSensitiveText(subject));
-    setPrepared(true); setAcknowledged(false); setFeedback({ kind: "info", text: masked === content && !foundSensitiveData ? "Đã tạo bản xem trước gửi AI." : "ScamLens đã che một số mẫu dữ liệu. Hãy sửa bản gửi nếu cần; tự kiểm tra thêm dữ liệu nhạy cảm." });
+    const maskedContext = redactSensitiveText(context);
+    const maskedSender = redactSensitiveText(sender);
+    const maskedReplyTo = redactSensitiveText(replyTo);
+    const maskedSubject = redactSensitiveText(subject);
+    const autoMaskApplied = masked !== content || maskedContext !== context || maskedSender !== sender || maskedReplyTo !== replyTo || maskedSubject !== subject;
+    setHadAutoMask(autoMaskApplied);
+    setContent(masked); setContext(maskedContext); setSender(maskedSender); setReplyTo(maskedReplyTo); setSubject(maskedSubject);
+    setPrepared(true); setAcknowledged(false); setFeedback({ kind: "info", text: autoMaskApplied ? "Một số mẫu dữ liệu đã được thay thế. Hãy kiểm tra toàn bộ nội dung trước khi gửi." : "Không phát hiện mẫu trong danh sách tự che; bản xem trước có thể giữ nguyên nội dung." });
   }
 
   async function readUploadedImage() {
@@ -207,15 +211,14 @@ export function HomeApp({ signedIn, email, authConfigured }: Props) {
             {type === "email" && <div className="email-fields"><label className="field-label">Người gửi <span>Tùy chọn</span><input value={sender} onChange={(e) => { setSender(e.target.value); setPrepared(false); }} placeholder="nguoigui@example.com" /></label><label className="field-label">Reply-To <span>Tùy chọn</span><input value={replyTo} onChange={(e) => { setReplyTo(e.target.value); setPrepared(false); }} placeholder="email phản hồi nếu có" /></label><label className="field-label span-two">Tiêu đề <span>Tùy chọn</span><input value={subject} onChange={(e) => { setSubject(e.target.value); setPrepared(false); }} placeholder="Tiêu đề email" /></label></div>}
             <label className="field-label" htmlFor="content-input">{type === "message" ? "Nội dung tin nhắn" : type === "email" ? "Nội dung email" : "Đường dẫn cần kiểm tra"}<span>{content.length.toLocaleString("vi-VN")} / 20.000</span></label>
             {!prepared && <textarea id="content-input" className="main-textarea" value={content} onChange={(e) => { setContent(e.target.value.slice(0, 20_000)); setPrepared(false); setAcknowledged(false); }} placeholder={type === "message" ? "Dán tin nhắn đáng ngờ vào đây…\n\nVí dụ: thông báo tài khoản, yêu cầu thanh toán, tin tuyển dụng" : type === "email" ? "Dán phần nội dung email cần kiểm tra…" : "Ví dụ: example.com/secure-account"} maxLength={20_000} />}
-            {prepared && <div className="prepared-review"><div className="review-heading"><span className="step-number">02</span><strong>Xem lại bản sẽ gửi đến AI</strong><span className="review-warning"><ShieldCheck size={14} /> Đã chạy che tự động</span></div><textarea className="prepared-text" value={content} onChange={(event) => { setContent(event.target.value); setAcknowledged(false); }} aria-label="Nội dung đã che, có thể chỉnh sửa" rows={Math.min(8, Math.max(3, content.split("\n").length))} /><p className="micro-note">{foundSensitiveData ? "Hãy tự kiểm tra số tài khoản, tên riêng, thông tin thẻ, OTP và chi tiết khác mà công cụ có thể bỏ sót." : "Hãy tự kiểm tra lại toàn bộ nội dung trước khi gửi."}</p><label className="check-label"><input type="checkbox" checked={acknowledged} onChange={(e) => setAcknowledged(e.target.checked)} /><span>Tôi đã đối chiếu nội dung, xóa thông tin không muốn chia sẻ và muốn tiếp tục.</span></label></div>}
-            <label className="field-label context-field">Ngữ cảnh bổ sung <span>Tùy chọn</span><textarea value={context} onChange={(e) => { setContext(e.target.value); setAcknowledged(false); }} rows={2} maxLength={1000} placeholder="Bạn được gửi nội dung này trong hoàn cảnh nào?" /></label>
-            {prepared && <p className="micro-note">{hadAutoMask ? "Một số mẫu đã được che. Hãy tự kiểm tra thêm dữ liệu nhạy cảm có thể bị bỏ sót." : "Hãy tự kiểm tra lại toàn bộ nội dung trước khi gửi."}</p>}
-            {!prepared && <button className="prepare-button full-button" type="button" onClick={prepareText}><ShieldCheck size={16} /> Xem trước nội dung đã che <ArrowRight size={15} /></button>}
+            {prepared && <div className="prepared-review"><div className="review-heading"><span className="step-number">02</span><strong>Nội dung sẽ gửi đến AI</strong><span className="review-warning"><ShieldCheck size={14} />{hadAutoMask ? "Đã thay thế một số mẫu" : "Không có mẫu được nhận diện"}</span></div><textarea className="prepared-text" value={content} onChange={(event) => { setContent(event.target.value); setAcknowledged(false); }} aria-label="Nội dung sẽ gửi đến AI, có thể chỉnh sửa" rows={Math.min(8, Math.max(3, content.split("\n").length))} /><p className="micro-note">{hadAutoMask ? "Một số mẫu dễ nhận diện đã được thay thế. Công cụ có thể bỏ sót tên riêng, địa chỉ hoặc dữ liệu có định dạng khác; hãy tự rà soát cả nội dung và ngữ cảnh." : "Không có mẫu trong danh sách tự che được nhận diện nên nội dung có thể vẫn nguyên văn. Hãy tự rà soát và xóa thủ công thông tin cá nhân trước khi gửi."}</p><label className="check-label"><input type="checkbox" checked={acknowledged} onChange={(e) => setAcknowledged(e.target.checked)} /><span>Tôi đã đối chiếu nội dung và ngữ cảnh, xóa thông tin không muốn chia sẻ và muốn tiếp tục.</span></label></div>}
+            <label className="field-label context-field">Ngữ cảnh bổ sung <span>Tùy chọn · cũng sẽ được gửi</span><textarea value={context} onChange={(e) => { setContext(e.target.value); setAcknowledged(false); if (prepared) setPrepared(false); }} rows={2} maxLength={1000} placeholder="Bạn được gửi nội dung này trong hoàn cảnh nào?" /></label>
+            {!prepared && <p className="micro-note">Tự động che một số mẫu như email, số điện thoại, mã OTP có số và chuỗi số dài. Tên riêng, địa chỉ và dữ liệu khác cần bạn tự kiểm tra.</p>}
           </div>}
 
-          <div className="privacy-consent"><label className="check-label"><input type="checkbox" checked={privacyAcknowledged} onChange={(e) => setPrivacyAcknowledged(e.target.checked)} /><span>Tôi hiểu nội dung đã che sẽ được gửi đến nhà cung cấp AI bên ngoài để xử lý theo điều khoản của họ. Tôi đã rà soát nội dung và có quyền chia sẻ dữ liệu này.</span></label><a href="/guide#privacy">Chính sách dữ liệu</a></div>
+          <div className="privacy-consent"><label className="check-label"><input type="checkbox" checked={privacyAcknowledged} onChange={(e) => setPrivacyAcknowledged(e.target.checked)} /><span>Tôi hiểu nội dung đã che sẽ được gửi cho AI để xử lý. Tôi đã rà soát nội dung và có quyền chia sẻ dữ liệu này.</span></label><a href="/guide#privacy">Chính sách dữ liệu</a></div>
           {feedback && <div className={`feedback feedback-${feedback.kind}`} role={feedback.kind === "error" ? "alert" : "status"}>{feedback.kind === "error" ? <TriangleAlert size={16} /> : feedback.kind === "success" ? <Check size={16} /> : <CircleHelp size={16} />}{feedback.text}</div>}
-          {type !== "image" && !prepared && <button className="primary-button full-button analyze-button" type="button" onClick={prepareText}><ShieldAlert size={17} /> Chuẩn bị kiểm tra <ArrowRight size={15} /></button>}
+          {type !== "image" && !prepared && <button className="primary-button full-button analyze-button" type="button" onClick={prepareText}><ShieldCheck size={17} /> Xem trước nội dung sẽ gửi <ArrowRight size={15} /></button>}
           {canAnalyze && <button className="primary-button full-button analyze-button" type="button" disabled={busy} onClick={analyze}>{busy ? <><LoaderCircle size={16} className="spin" /> Đang phân tích...</> : <><Sparkles size={16} /> Phân tích {typeLabels[type].toLocaleLowerCase("vi-VN")} <ArrowRight size={15} /></>}</button>}
           {!privacyAcknowledged && <p className="below-button-note"><LockKeyhole size={13} /> Nội dung chỉ được gửi sau khi bạn xem trước và đồng ý.</p>}
         </section>
