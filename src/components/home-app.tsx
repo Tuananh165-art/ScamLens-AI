@@ -143,7 +143,33 @@ export function HomeApp({ signedIn, email, authConfigured }: Props) {
 
   async function copyReport() {
     if (!report) return;
-    const text = `${riskLabels[report.riskLevel]}\n\n${report.summary}\n\n${report.findings.map((finding) => `• ${finding.title}: “${finding.evidence}” — ${finding.explanation}`).join("\n\n")}\n\nKiểm chứng:\n${report.checklist.map((item) => `• ${item}`).join("\n")}`;
+    const findings = report.findings.length
+      ? report.findings.map((finding, index) => `${index + 1}. ${finding.title}\n   Bằng chứng: “${finding.evidence}”\n   Vì sao cần lưu ý: ${finding.explanation}`)
+      : ["Chưa thấy dấu hiệu có bằng chứng trực tiếp trong nội dung đã cung cấp."];
+    const checklist = report.checklist.length
+      ? report.checklist.map((item, index) => `${index + 1}. ${item}`)
+      : ["Chưa có bước kiểm chứng cụ thể cho dữ liệu hiện tại."];
+    const limitations = report.limitations.length
+      ? report.limitations.map((item) => `• ${item}`)
+      : ["Kết quả chỉ dựa trên nội dung bạn cung cấp; cần kiểm chứng qua kênh độc lập."];
+    const text = [
+      "SCAMLENS AI · BÁO CÁO PHÂN TÍCH",
+      `Nguồn: ${typeLabels[report.type]}`,
+      `Mức cảnh báo: ${riskLabels[report.riskLevel]}`,
+      "",
+      report.summary,
+      "",
+      "DẤU HIỆU CẦN LƯU Ý",
+      ...findings,
+      "",
+      "CÁCH KIỂM CHỨNG AN TOÀN",
+      ...checklist,
+      "",
+      "NHỮNG ĐIỀU CHƯA XÁC MINH",
+      ...limitations,
+      "",
+      "Đây là phân tích hỗ trợ sàng lọc, không xác nhận danh tính, website hoặc giao dịch. Hãy tự kiểm chứng qua kênh chính thức.",
+    ].join("\n");
     try { await navigator.clipboard.writeText(text); setCopied(true); window.setTimeout(() => setCopied(false), 1600); }
     catch { setFeedback({ kind: "error", text: "Trình duyệt chưa cho phép sao chép. Hãy dùng nút In / lưu PDF." }); }
   }
@@ -168,12 +194,12 @@ export function HomeApp({ signedIn, email, authConfigured }: Props) {
           <div className="type-tabs" role="tablist" aria-label="Loại dữ liệu cần phân tích">{types.map(({ id, label, icon: Icon }) => <button key={id} role="tab" aria-selected={type === id} className={`type-tab ${type === id ? "selected" : ""}`} type="button" onClick={() => switchType(id)}><Icon size={16} strokeWidth={1.8} /><span>{label}</span></button>)}</div>
 
           {type === "image" ? <div className="input-fields image-fields">
-            <label className="field-heading"><span className="step-number">02</span> Che dữ liệu rồi đọc ảnh <span className="optional">Dùng DeepSeek</span></label>
-            {!redactedImage ? <ImageRedactor onPrepared={(file) => { setRedactedImage(file); setImagePreview(URL.createObjectURL(file)); setImageStep("select"); setFeedback({ kind: "info", text: "Ảnh đã được che và tái mã hóa trong trình duyệt. Sẵn sàng gửi DeepSeek đọc." }); }} onClear={() => { setRedactedImage(null); setImagePreview(""); }} /> : <>
+            <label className="field-heading"><span className="step-number">02</span> Che dữ liệu rồi đọc ảnh <span className="optional">Dùng AI</span></label>
+            {!redactedImage ? <ImageRedactor onPrepared={(file) => { setRedactedImage(file); setImagePreview(URL.createObjectURL(file)); setImageStep("select"); setFeedback({ kind: "info", text: "Ảnh đã được che và tái mã hóa trong trình duyệt. Sẵn sàng gửi AI đọc." }); }} onClear={() => { setRedactedImage(null); setImagePreview(""); }} /> : <>
               <div className="redacted-preview"><div className="redacted-preview-image" role="img" aria-label="Ảnh đã che được chuẩn bị trong trình duyệt" style={{ backgroundImage: `url("${imagePreview}")` }} /><button className="text-button" type="button" onClick={() => { setRedactedImage(null); setImagePreview(""); setImageStep("select"); setOcrText(""); setOcrConfirmed(false); }}>Chọn ảnh khác</button></div>
-              {imageStep === "select" && <button className="secondary-button full-button" onClick={readUploadedImage} type="button" disabled={busy}><Upload size={16} /> Đọc ảnh đã che bằng DeepSeek</button>}
-              {imageStep === "reading" && <div className="working-note"><LoaderCircle className="spin" size={16} /> DeepSeek đang đọc ảnh đã che…</div>}
-              {imageStep === "review" && <div className="ocr-review"><div className="review-heading"><span className="step-number">03</span><strong>Đối chiếu chữ DeepSeek đọc được</strong><span className="review-warning"><CircleHelp size={14} /> Chưa được xác nhận</span></div><textarea className="ocr-textarea" value={ocrText} onChange={(event) => { setOcrText(event.target.value); setOcrConfirmed(false); }} aria-label="Bản đọc chữ từ ảnh, có thể chỉnh sửa" />{ocrNotes.length > 0 && <ul className="ocr-notes">{ocrNotes.map((note, i) => <li key={i}>{note}</li>)}</ul>}<p className="micro-note">Đối chiếu với ảnh bên trên. Nếu có số tài khoản, OTP hoặc số điện thoại, hãy thay bằng ký hiệu trước khi xác nhận.</p><button className="secondary-button full-button" type="button" onClick={confirmOcr}><Check size={16} /> Tôi đã kiểm tra và xác nhận bản đọc</button></div>}
+              {imageStep === "select" && <button className="secondary-button full-button" onClick={readUploadedImage} type="button" disabled={busy}><Upload size={16} /> Đọc ảnh đã che bằng AI</button>}
+              {imageStep === "reading" && <div className="working-note"><LoaderCircle className="spin" size={16} /> AI đang đọc ảnh đã che…</div>}
+              {imageStep === "review" && <div className="ocr-review"><div className="review-heading"><span className="step-number">03</span><strong>Đối chiếu nội dung AI nhận diện</strong><span className="review-warning"><CircleHelp size={14} /> Chưa được xác nhận</span></div><textarea className="ocr-textarea" value={ocrText} onChange={(event) => { setOcrText(event.target.value); setOcrConfirmed(false); }} aria-label="Bản đọc chữ từ ảnh, có thể chỉnh sửa" />{ocrNotes.length > 0 && <ul className="ocr-notes">{ocrNotes.map((note, i) => <li key={i}>{note}</li>)}</ul>}<p className="micro-note">Đối chiếu với ảnh bên trên. Nếu có số tài khoản, OTP hoặc số điện thoại, hãy thay bằng ký hiệu trước khi xác nhận.</p><button className="secondary-button full-button" type="button" onClick={confirmOcr}><Check size={16} /> Tôi đã kiểm tra và xác nhận bản đọc</button></div>}
               {imageStep === "confirmed" && <div className="confirmed-box"><span className="confirmed-icon"><BadgeCheck size={18} /></span><div><strong>Bản đọc đã được xác nhận</strong><small>“{ocrText.slice(0, 150)}{ocrText.length > 150 ? "…" : ""}”</small></div><button className="text-button" onClick={() => { setImageStep("review"); setOcrConfirmed(false); }} type="button">Sửa bản đọc</button></div>}
               {imageStep === "confirmed" && <label className="field-label context-field">Ngữ cảnh bổ sung <span>Tùy chọn</span><textarea value={context} onChange={(e) => setContext(e.target.value)} rows={2} maxLength={1000} placeholder="Bạn được gửi ảnh trong hoàn cảnh nào?" /></label>}
             </>}
@@ -187,7 +213,7 @@ export function HomeApp({ signedIn, email, authConfigured }: Props) {
             {!prepared && <button className="prepare-button full-button" type="button" onClick={prepareText}><ShieldCheck size={16} /> Xem trước nội dung đã che <ArrowRight size={15} /></button>}
           </div>}
 
-          <div className="privacy-consent"><label className="check-label"><input type="checkbox" checked={privacyAcknowledged} onChange={(e) => setPrivacyAcknowledged(e.target.checked)} /><span>Tôi hiểu nội dung đã che sẽ được gửi đến DeepSeek API để phân tích và được xử lý theo điều khoản của nhà cung cấp. Tôi đã rà soát nội dung và có quyền chia sẻ dữ liệu này.</span></label><a href="/guide#privacy">Chính sách dữ liệu</a></div>
+          <div className="privacy-consent"><label className="check-label"><input type="checkbox" checked={privacyAcknowledged} onChange={(e) => setPrivacyAcknowledged(e.target.checked)} /><span>Tôi hiểu nội dung đã che sẽ được gửi đến nhà cung cấp AI bên ngoài để xử lý theo điều khoản của họ. Tôi đã rà soát nội dung và có quyền chia sẻ dữ liệu này.</span></label><a href="/guide#privacy">Chính sách dữ liệu</a></div>
           {feedback && <div className={`feedback feedback-${feedback.kind}`} role={feedback.kind === "error" ? "alert" : "status"}>{feedback.kind === "error" ? <TriangleAlert size={16} /> : feedback.kind === "success" ? <Check size={16} /> : <CircleHelp size={16} />}{feedback.text}</div>}
           {type !== "image" && !prepared && <button className="primary-button full-button analyze-button" type="button" onClick={prepareText}><ShieldAlert size={17} /> Chuẩn bị kiểm tra <ArrowRight size={15} /></button>}
           {canAnalyze && <button className="primary-button full-button analyze-button" type="button" disabled={busy} onClick={analyze}>{busy ? <><LoaderCircle size={16} className="spin" /> Đang phân tích...</> : <><Sparkles size={16} /> Phân tích {typeLabels[type].toLocaleLowerCase("vi-VN")} <ArrowRight size={15} /></>}</button>}
@@ -218,7 +244,7 @@ function ReportView({ report, signedIn, busy, onSave, onCopy, copied }: { report
   const riskClass = `risk-${report.riskLevel}`;
   return <section className="report-section" aria-live="polite">
     <div className="report-header"><div><div className="section-kicker">KẾT QUẢ PHÂN TÍCH · {typeLabels[report.type]}</div><h2>Điều chúng tôi tìm thấy</h2></div><div className="report-actions"><button className="secondary-button" onClick={onCopy}><Copy size={15} /> {copied ? "Đã sao chép" : "Sao chép"}</button><button className="secondary-button" onClick={() => window.print()}><FileText size={15} /> In / lưu PDF</button></div></div>
-    <div className={`risk-banner ${riskClass}`}><span className="risk-symbol">{report.riskLevel === "high" ? <ShieldAlert size={23} /> : report.riskLevel === "low" ? <ShieldCheck size={23} /> : <TriangleAlert size={23} />}</span><div className="risk-copy"><div className="risk-label">MỨC CẢNH BÁO</div><h3>{riskLabels[report.riskLevel]}</h3><p>{report.summary}</p></div><div className="report-meta"><span>{new Date(report.createdAt).toLocaleString("vi-VN", { dateStyle: "medium", timeStyle: "short" })}</span><span>Model: {report.model.text}{report.model.image ? ` + ${report.model.image}` : ""}</span><span>{report.source.confirmedOcr ? "Bản đọc ảnh đã xác nhận" : "Nguồn người dùng cung cấp"}</span></div></div>
+    <div className={`risk-banner ${riskClass}`}><span className="risk-symbol">{report.riskLevel === "high" ? <ShieldAlert size={23} /> : report.riskLevel === "low" ? <ShieldCheck size={23} /> : <TriangleAlert size={23} />}</span><div className="risk-copy"><div className="risk-label">MỨC CẢNH BÁO</div><h3>{riskLabels[report.riskLevel]}</h3><p>{report.summary}</p></div><div className="report-meta"><span>{new Date(report.createdAt).toLocaleString("vi-VN", { dateStyle: "medium", timeStyle: "short" })}</span><span>{report.model.text === "demo-rules" ? "Kết quả minh họa" : "Được phân tích bằng AI"}</span><span>{report.source.confirmedOcr ? "Bản đọc ảnh đã xác nhận" : "Nguồn người dùng cung cấp"}</span></div></div>
     {report.findings.length ? <div className="findings-list">{report.findings.map((finding, index) => <article className="finding-card" key={`${finding.category}-${finding.evidence}-${index}`}><div className="finding-top"><span className={`finding-index finding-${finding.severity}`}>{String(index + 1).padStart(2, "0")}</span><div className="finding-heading"><div><span className="category-label">{categoryLabels[finding.category]}</span><span className="severity-label">{finding.severity === "high" ? "Cao" : finding.severity === "medium" ? "Cần chú ý" : "Thấp"}</span></div><h3>{finding.title}</h3></div></div><blockquote className="evidence-quote"><span>“</span>{finding.evidence}<small>Trích từ nội dung bạn đã gửi</small></blockquote><p className="finding-explanation">{finding.explanation}</p></article>)}</div> : <div className="empty-findings"><ShieldCheck size={19} /><div><strong>Chưa tìm thấy dấu hiệu có bằng chứng trực tiếp.</strong><p>Điều này không xác nhận người gửi, website hay giao dịch là an toàn.</p></div></div>}
     <div className="report-lower-grid"><article className="checklist-card"><div className="result-card-heading"><span className="result-icon green"><BadgeCheck size={17} /></span><div><h3>Cách kiểm chứng an toàn</h3><p>Luôn tự mở kênh liên hệ chính thức.</p></div></div><ol>{report.checklist.map((item, i) => <li key={`${item}-${i}`}><span>{String(i + 1).padStart(2, "0")}</span>{item}</li>)}</ol><div className="never-do"><LockKeyhole size={15} /><strong>Không chia sẻ OTP, mật khẩu hoặc mã PIN</strong></div></article><article className="limits-card"><div className="result-card-heading"><span className="result-icon amber"><CircleHelp size={17} /></span><div><h3>Những điều chưa xác minh</h3><p>Thông tin từ AI không thay thế xác nhận độc lập.</p></div></div><ul>{(expandedLimitations ? report.limitations : report.limitations.slice(0, 3)).map((item, i) => <li key={`${item}-${i}`}>{item}</li>)}</ul>{report.limitations.length > 3 && <button className="text-button" onClick={() => setExpandedLimitations(!expandedLimitations)}>{expandedLimitations ? "Thu gọn" : `Xem thêm ${report.limitations.length - 3} giới hạn`} <ChevronDown size={14} /></button>}</article></div>
     <div className="source-disclosure"><div><strong><Fingerprint size={15} /> Nội dung không được lưu tự động</strong><span>Báo cáo chỉ lưu sau khi bạn chọn “Lưu vào lịch sử”. Ảnh gốc không được lưu.</span></div>{signedIn ? <button className="primary-button save-button" disabled={busy} onClick={onSave}>{busy ? <LoaderCircle size={15} className="spin" /> : <Clock3 size={15} />} {busy ? "Đang lưu..." : "Lưu vào lịch sử"}</button> : <a className="save-button secondary-button" href="/auth/login">Đăng nhập để lưu <ArrowRight size={14} /></a>}</div>

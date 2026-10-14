@@ -9,6 +9,12 @@ const ocrSchema = z.object({
   uncertainParts: z.array(z.string().max(200)).max(20),
   notes: z.array(z.string().max(200)).max(8),
 });
+const OCR_SYSTEM_PROMPT = `Bạn là công cụ OCR tiếng Việt. Chỉ đọc chữ nhìn thấy trong ảnh đã được người dùng che dữ liệu riêng tư; không suy đoán chữ mờ, bị che hoặc bị cắt. Ghi phần đọc không chắc trong uncertainParts. Không kết luận ảnh thật/giả hoặc giao dịch thành công.
+
+Chỉ trả về một JSON object hợp lệ theo đúng ví dụ sau, không markdown và không thêm khóa:
+{"text":"Nội dung đọc được","uncertainParts":[],"notes":[]}
+
+Tất cả ba khóa đều bắt buộc. text luôn là chuỗi (dùng chuỗi rỗng nếu không đọc được chữ); uncertainParts và notes luôn là mảng chuỗi (dùng mảng rỗng nếu không có). Nếu ảnh không đọc được, mô tả giới hạn trong notes; không tự điền nội dung không nhìn thấy.`;
 const completionSchema = z.object({
   choices: z.array(z.object({
     finish_reason: z.string().nullable().optional(),
@@ -105,12 +111,12 @@ export async function readImage(image: Buffer, mimeType: ImageMime) {
     messages: [
       {
         role: "system",
-        content: "Bạn là công cụ OCR tiếng Việt. Đọc chính xác chữ trong ảnh đã được người dùng che dữ liệu riêng tư. Không suy đoán chữ mờ/bị cắt; ghi phần không chắc trong uncertainParts. Không kết luận ảnh thật/giả hay giao dịch thành công. Chỉ trả JSON có các khóa text, uncertainParts, notes; không thêm văn bản ngoài JSON.",
+        content: OCR_SYSTEM_PROMPT,
       },
       {
         role: "user",
         content: [
-          { type: "text", text: "Đọc nội dung ảnh và trả JSON theo yêu cầu. Nếu không có chữ đọc được, để text rỗng và mô tả giới hạn trong notes." },
+          { type: "text", text: "Đọc nội dung ảnh. Hãy trả JSON đúng nguyên mẫu và quy tắc trong chỉ dẫn hệ thống." },
           {
             type: "image_url",
             image_url: { url: `data:${mimeType};base64,${image.toString("base64")}`, detail: "original" },

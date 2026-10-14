@@ -4,7 +4,8 @@ test("home renders Vietnamese analysis choices and privacy notice", async ({ pag
   await page.goto("/");
   await expect(page.getByRole("heading", { name: /Tin nhắn này có/ })).toBeVisible();
   await expect(page.getByRole("tab", { name: "Tin nhắn" })).toBeVisible();
-  await expect(page.getByText(/DeepSeek API để phân tích/)).toBeVisible();
+  await expect(page.getByText(/nhà cung cấp AI bên ngoài/)).toBeVisible();
+  await expect(page.getByText(/DeepSeek/i)).toHaveCount(0);
 });
 
 test("message can be prepared and its review checkbox gates sending", async ({ page }) => {
@@ -14,7 +15,7 @@ test("message can be prepared and its review checkbox gates sending", async ({ p
   await expect(page.getByText("Xem lại bản sẽ gửi đến AI")).toBeVisible();
   await expect(page.getByRole("button", { name: /Phân tích tin nhắn/ })).toHaveCount(0);
   await page.getByLabel(/Tôi đã đối chiếu nội dung/).check();
-  await page.getByLabel(/DeepSeek API để phân tích/).check();
+  await page.getByLabel(/nhà cung cấp AI bên ngoài/).check();
   await expect(page.getByRole("button", { name: /Phân tích tin nhắn/ })).toBeVisible();
 });
 
@@ -22,7 +23,7 @@ test("OCR provider failure preserves the locally redacted image for retry", asyn
   let attempts = 0;
   await page.route("**/api/ocr", async (route) => {
     attempts += 1;
-    await route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: "Chưa cấu hình DEEPSEEK_API_KEY hoặc DEEPSEEK_MODEL." }) });
+    await route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: "Dịch vụ AI hiện chưa sẵn sàng." }) });
   });
   await page.goto("/");
   await page.getByRole("tab", { name: "Ảnh chụp" }).click();
@@ -40,11 +41,11 @@ test("OCR provider failure preserves the locally redacted image for retry", asyn
     buffer: Buffer.from(imageBase64!, "base64"),
   });
   await page.getByRole("button", { name: "Tiếp tục với ảnh đã che" }).click();
-  await page.getByRole("button", { name: "Đọc ảnh đã che bằng DeepSeek" }).click();
-  await expect(page.locator(".feedback-error")).toContainText("Chưa cấu hình DEEPSEEK_API_KEY");
+  await page.getByRole("button", { name: "Đọc ảnh đã che bằng AI" }).click();
+  await expect(page.locator(".feedback-error")).toContainText("Dịch vụ AI hiện chưa sẵn sàng");
   await expect(page.getByRole("img", { name: "Ảnh đã che được chuẩn bị trong trình duyệt" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Đọc ảnh đã che bằng DeepSeek" })).toBeVisible();
-  await page.getByRole("button", { name: "Đọc ảnh đã che bằng DeepSeek" }).click();
+  await expect(page.getByRole("button", { name: "Đọc ảnh đã che bằng AI" })).toBeVisible();
+  await page.getByRole("button", { name: "Đọc ảnh đã che bằng AI" }).click();
   await expect.poll(() => attempts).toBe(2);
 });
 

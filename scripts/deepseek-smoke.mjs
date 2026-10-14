@@ -1,5 +1,6 @@
 import nextEnv from "@next/env";
 import { z } from "zod";
+import { deflateSync } from "node:zlib";
 
 nextEnv.loadEnvConfig(process.cwd());
 
@@ -31,6 +32,36 @@ const ocrSchema = z.object({
   uncertainParts: z.array(z.string().max(200)).max(20),
   notes: z.array(z.string().max(200)).max(8),
 });
+function crc32(bytes) {
+  let crc = 0xffffffff;
+  for (const byte of bytes) {
+    crc ^= byte;
+    for (let bit = 0; bit < 8; bit++) crc = (crc >>> 1) ^ (crc & 1 ? 0xedb88320 : 0);
+  }
+  return (crc ^ 0xffffffff) >>> 0;
+}
+function pngChunk(type, data) {
+  const typeBytes = Buffer.from(type, "ascii");
+  const length = Buffer.alloc(4);
+  length.writeUInt32BE(data.length);
+  const checksum = Buffer.alloc(4);
+  checksum.writeUInt32BE(crc32(Buffer.concat([typeBytes, data])));
+  return Buffer.concat([length, typeBytes, data, checksum]);
+}
+function createPngFixture() {
+  const header = Buffer.alloc(13);
+  header.writeUInt32BE(1, 0);
+  header.writeUInt32BE(1, 4);
+  header[8] = 8;
+  header[9] = 6;
+  return Buffer.concat([
+    Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]),
+    pngChunk("IHDR", header),
+    pngChunk("IDAT", deflateSync(Buffer.from([0, 255, 255, 255, 255]))),
+    pngChunk("IEND", Buffer.alloc(0)),
+  ]);
+}
+const pngFixture = createPngFixture().toString("base64");
 const sampleText = "[MẪU GIẢ LẬP] Tài khoản của bạn sắp bị khóa trong 10 phút. Hãy gửi mã OTP để xác minh ngay, không được nói với ai.";
 const systemPrompt = [
   "Bạn là ScamLens, trợ lý phân tích nội dung đáng ngờ bằng tiếng Việt.",
@@ -96,12 +127,12 @@ await run("text_report", [
 ], reportSchema, 3200);
 
 await run("image_input_ocr", [
-  { role: "system", content: "Đọc chữ trong ảnh và trả JSON chỉ gồm text, uncertainParts, notes. Không suy đoán nội dung không nhìn thấy." },
+  { role: "system", content: 'Bạn là công cụ OCR tiếng Việt. Chỉ đọc chữ nhìn thấy trong ảnh, không suy đoán chữ mờ, bị che hoặc bị cắt. Ghi phần đọc không chắc trong uncertainParts. Không kết luận ảnh thật/giả hoặc giao dịch thành công. Chỉ trả một JSON object hợp lệ đúng nguyên mẫu sau, không markdown, không thêm khóa: {"text":"Nội dung đọc được","uncertainParts":[],"notes":[]}. Cả ba khóa đều bắt buộc; text luôn là chuỗi, uncertainParts và notes luôn là mảng chuỗi. Nếu ảnh không đọc được, text là chuỗi rỗng và nêu giới hạn trong notes.' },
   {
     role: "user",
     content: [
-      { type: "text", text: "Ảnh PNG giả lập một pixel trống. Trả đúng JSON theo yêu cầu." },
-      { type: "image_url", image_url: { url: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+y0Z8AAAAASUVORK5CYII=", detail: "original" } },
+      { type: "text", text: "Đọc nội dung ảnh. Hãy trả JSON đúng nguyên mẫu và quy tắc trong chỉ dẫn hệ thống." },
+      { type: "image_url", image_url: { url: `data:image/png;base64,${pngFixture}`, detail: "original" } },
     ],
   },
 ], ocrSchema, 1200);

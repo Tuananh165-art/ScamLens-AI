@@ -81,7 +81,7 @@ describe("POST /api/analyze", () => {
     const result = await analyze("Mời kiểm tra thông báo.");
 
     expect(result.status).toBe(502);
-    expect(result.body.error).toContain("DeepSeek");
+    expect(result.body.error).toContain("AI");
   });
 
   it("explains the app per-minute quota and returns the retry delay", async () => {

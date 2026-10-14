@@ -46,6 +46,7 @@ describe("DeepSeek adapter", () => {
     expect(request.messages[0].content).toContain('"findings":[]');
     expect(request.messages[0].content).toContain("suspicious_url");
     expect(request.messages[0].content).toContain("Tất cả khóa dưới đây là bắt buộc");
+    expect(request.messages[0].content).toContain("tự nhiên, thân thiện, bình tĩnh và chuyên nghiệp");
   });
 
   it("sends the redacted image inline and validates OCR JSON", async () => {
@@ -58,6 +59,9 @@ describe("DeepSeek adapter", () => {
     expect(result.model).toBe("deepseek-v4-flash");
     const request = JSON.parse(String(vi.mocked(fetch).mock.calls[0][1]?.body));
     expect(request.messages[1].content[1].image_url.url).toBe("data:image/png;base64,AQID");
+    expect(request.messages[0].content).toContain("Chỉ trả về một JSON object hợp lệ");
+    expect(request.messages[0].content).toContain('"text":"Nội dung đọc được","uncertainParts":[],"notes":[]');
+    expect(request.messages[0].content).toContain("Tất cả ba khóa đều bắt buộc");
   });
 
   it("maps DeepSeek rate limiting to HTTP 429 without exposing provider data", async () => {
@@ -68,7 +72,7 @@ describe("DeepSeek adapter", () => {
     await expect(analyzeWithDeepSeek("sample")).rejects.toThrow("deepseek_rate_limited");
     expect(publicError(new Error("deepseek_rate_limited"))).toEqual({
       status: 429,
-      message: "DeepSeek đã giới hạn lượt gọi. Hãy thử lại sau.",
+      message: "AI đang nhận nhiều yêu cầu. Hãy đợi một chút rồi thử lại.",
     });
   });
 
