@@ -15,7 +15,7 @@ Trạng thái migration ghi nhận ngày 15/10/2026. `PASS` chỉ áp dụng cho
 - [x] Luật phân tích, schema có cấu trúc, đối chiếu bằng chứng với nguồn và tính lại mức rủi ro từ finding hợp lệ.
 - [x] Parse URL cục bộ bằng WHATWG URL và `tldts`; không gửi request đến hostname người dùng nhập.
 - [x] Xuất/print báo cáo, checklist kiểm chứng và giới hạn.
-- [ ] Bộ acceptance 30 fixture mục tiêu — chưa hoàn tất; hiện có 17 unit/API tests cùng 5 browser tests. Cần mở rộng các fixture phủ đủ nhóm tình huống trước khi tuyên bố chất lượng phân tích đã được đánh giá rộng.
+- [ ] Bộ acceptance 30 fixture mục tiêu — chưa hoàn tất; hiện có 22 unit/API tests cùng 6 browser tests. Cần mở rộng các fixture phủ đủ nhóm tình huống trước khi tuyên bố chất lượng phân tích đã được đánh giá rộng.
 
 ## M3 — Ảnh và xác nhận OCR
 
@@ -30,13 +30,13 @@ Trạng thái migration ghi nhận ngày 15/10/2026. `PASS` chỉ áp dụng cho
 - [x] Migration bảng báo cáo, RLS owner-only, lưu chủ động, xem và xóa báo cáo.
 - [x] Upstash rate limit dùng HMAC cho user/IP; production từ chối đóng khi thiếu Redis hoặc secret.
 - [ ] Supabase/Google OAuth/RLS live acceptance — `BLOCKED` bởi chưa có project và OAuth client bên ngoài. Cần chạy thử A/B, truy cập chéo ID và xóa bằng JWT của từng tài khoản sau khi cấu hình.
-- [ ] Upstash production quota — `BLOCKED` bởi chưa có Redis REST credentials; hiện chỉ kiểm tra source/build, chưa chứng minh quota phân tán live.
+- [ ] Upstash production quota — deployment đã trả app-level 429 khi đạt hạn mức, nhưng chưa kiểm tra nhất quán quota qua nhiều instance/người dùng.
 
 ## M5 — Hoàn thiện, CI và deploy
 
 - [x] Giao diện responsive và tài liệu setup, dịch vụ, riêng tư, test/demo, deploy bằng tiếng Việt.
 - [x] GitHub Actions chạy lint, typecheck, unit test và build với Node.js 24; không gọi AI trong CI.
-- [x] Lint, typecheck, unit/API tests, Playwright E2E và production build — source DeepSeek: lint/typecheck pass; 5 file test, 17 test pass; E2E 6/6 pass; production build pass.
+- [x] Lint, typecheck, unit/API tests, Playwright E2E và production build — lint/typecheck pass; 6 file test, 22 test pass; E2E 6/6 pass; production build pass.
 - [ ] Vercel — cần redeploy source mới với DeepSeek env và xác minh workflow live trên deployment.
 
 ## Lệnh tái hiện kiểm tra local

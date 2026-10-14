@@ -1,6 +1,6 @@
 import { readImage } from "@/lib/ai/deepseek";
 import { publicError } from "@/lib/ai/errors";
-import { takeQuota } from "@/lib/security/rate-limit";
+import { quotaLimitMessage, takeQuota } from "@/lib/security/rate-limit";
 import { getAuthenticatedUser } from "@/lib/supabase/server";
 import { privateJson } from "@/lib/http";
 
@@ -22,7 +22,7 @@ export async function POST(request: Request) {
     const userState = await getAuthenticatedUser().catch(() => ({ configured: false as const, client: null, user: null }));
     const ip = request.headers.get("x-real-ip") || request.headers.get("x-vercel-forwarded-for")?.split(",")[0]?.trim() || "local-guest";
     const quota = await takeQuota({ ip, userId: userState.user?.id, provider: "deepseek" });
-    if (!quota.allowed) return privateJson({ error: "Bạn đã hết lượt đọc ảnh hiện tại. Hãy thử lại sau." }, 429, { "Retry-After": String(quota.retryAfterSeconds) });
+    if (!quota.allowed) return privateJson({ error: quotaLimitMessage(quota), retryAfterSeconds: quota.retryAfterSeconds }, 429, { "Retry-After": String(quota.retryAfterSeconds) });
     const result = await readImage(bytes, mime);
     return privateJson({ ...result, source: "deepseek-image-read", confirmedByUser: false });
   } catch (error) {

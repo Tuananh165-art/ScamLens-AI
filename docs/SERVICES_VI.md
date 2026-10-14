@@ -57,13 +57,13 @@ URL, REST token và HMAC secret chỉ dùng server side; không đưa prefix `NE
 ## 4. Quota mặc định và sự cố dịch vụ
 
 ```dotenv
-RATE_LIMIT_GUEST_DAILY=5
-RATE_LIMIT_USER_DAILY=20
-RATE_LIMIT_PER_MINUTE=3
-RATE_LIMIT_DEEPSEEK_DAILY=30
+RATE_LIMIT_GUEST_DAILY=20
+RATE_LIMIT_USER_DAILY=60
+RATE_LIMIT_PER_MINUTE=10
+RATE_LIMIT_DEEPSEEK_DAILY=100
 ```
 
-Đây là hạn mức cứng của ứng dụng cho tổng số lượt DeepSeek (phân tích và OCR), không bao gồm hoặc bảo đảm số dư API miễn phí. Kiểm tra số dư và giới hạn tài khoản tại DeepSeek Platform trước khi chạy live smoke. Upstash hết quota hoặc không kết nối được sẽ làm API từ chối an toàn, thay vì bỏ qua rate limit trong production.
+Đây là hạn mức cứng của ứng dụng cho tổng số lượt DeepSeek (phân tích và OCR), không bao gồm hoặc bảo đảm số dư API miễn phí. Giới hạn cá nhân theo ngày làm mới lúc 00:00 UTC; giới hạn phút trả thời gian chờ qua `Retry-After`. API phân biệt lượt/phút, lượt/ngày và trần provider/ngày trong thông báo 429. Kiểm tra số dư và giới hạn tài khoản tại DeepSeek Platform trước khi chạy live smoke. Upstash hết quota hoặc không kết nối được sẽ làm API từ chối an toàn, thay vì bỏ qua rate limit trong production.
 
 Kiểm tra cấu hình:
 

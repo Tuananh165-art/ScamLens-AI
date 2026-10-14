@@ -4,9 +4,18 @@ import { Redis } from "@upstash/redis";
 
 const localCounts = new Map<string, { count: number; expiresAt: number }>();
 const WINDOW_MINUTE = 60_000;
-const WINDOW_DAY = 86_400_000;
 
-type LimitResult = { allowed: boolean; retryAfterSeconds: number; backend: "upstash" | "local" };
+type LimitReason = "per_minute" | "daily_actor" | "provider_daily";
+export type LimitResult = { allowed: boolean; retryAfterSeconds: number; backend: "upstash" | "local"; reason?: LimitReason };
+
+export function quotaLimitMessage(result: LimitResult) {
+  if (result.reason === "per_minute") {
+    const seconds = Math.max(1, result.retryAfterSeconds);
+    return `Bạn đã đạt giới hạn lượt trong một phút. Hãy thử lại sau khoảng ${seconds} giây.`;
+  }
+  if (result.reason === "provider_daily") return "ScamLens đã đạt hạn mức AI trong ngày. Hãy thử lại sau khi quota được làm mới lúc 00:00 UTC.";
+  return "Bạn đã dùng hết lượt hôm nay. Hãy thử lại sau khi quota được làm mới lúc 00:00 UTC.";
+}
 
 function hashed(value: string) {
   const secret = process.env.RATE_LIMIT_HMAC_SECRET || "scamlens-local-development-only";
@@ -26,17 +35,20 @@ export async function takeQuota(input: { ip: string; userId?: string; provider: 
       const redis = Redis.fromEnv();
       const perMinute = new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(minuteLimit, "1 m"), prefix: "scamlens:minute" });
       const minute = await perMinute.limit(hashed(actor));
-      if (!minute.success) return { allowed: false, retryAfterSeconds: Math.ceil(Math.max(0, minute.reset - Date.now()) / 1000), backend };
-      const dayBucket = new Date().toISOString().slice(0, 10);
+      if (!minute.success) return { allowed: false, retryAfterSeconds: Math.ceil(Math.max(0, minute.reset - Date.now()) / 1000), backend, reason: "per_minute" };
+      const now = Date.now();
+      const dayBucket = new Date(now).toISOString().slice(0, 10);
+      const dayResetSeconds = secondsUntilUtcReset(now);
       const userKey = `scamlens:daily:${dayBucket}:${hashed(actor)}`;
       const providerKey = `scamlens:provider:${dayBucket}:${input.provider}`;
       const dailyCount = await redis.incr(userKey);
-      if (dailyCount === 1) await redis.expire(userKey, 90_000);
-      if (dailyCount > dailyLimit) return { allowed: false, retryAfterSeconds: 86_400, backend };
+      if (dailyCount === 1) await redis.expire(userKey, dayResetSeconds);
+      if (dailyCount > dailyLimit) return { allowed: false, retryAfterSeconds: dayResetSeconds, backend, reason: "daily_actor" };
       const providerCount = await redis.incr(providerKey);
-      if (providerCount === 1) await redis.expire(providerKey, 90_000);
+      if (providerCount === 1) await redis.expire(providerKey, dayResetSeconds);
       const providerCap = numberEnv("RATE_LIMIT_DEEPSEEK_DAILY", 30);
-      return { allowed: dailyCount <= dailyLimit && providerCount <= providerCap, retryAfterSeconds: 86_400, backend };
+      if (providerCount > providerCap) return { allowed: false, retryAfterSeconds: dayResetSeconds, backend, reason: "provider_daily" };
+      return { allowed: true, retryAfterSeconds: 0, backend };
     } catch {
       throw new Error("quota_unavailable");
     }
@@ -52,12 +64,21 @@ export async function takeQuota(input: { ip: string; userId?: string; provider: 
     }
   }
   const minute = hitLocal(`minute:${actor}`, now, WINDOW_MINUTE, minuteLimit);
-  if (!minute.allowed) return { ...minute, backend };
-  const daily = hitLocal(`daily:${new Date().toISOString().slice(0, 10)}:${actor}`, now, WINDOW_DAY, dailyLimit);
-  if (!daily.allowed) return { ...daily, backend };
-  const provider = hitLocal(`provider:${new Date().toISOString().slice(0, 10)}:${input.provider}`, now, WINDOW_DAY,
+  if (!minute.allowed) return { ...minute, backend, reason: "per_minute" };
+  const dayBucket = new Date(now).toISOString().slice(0, 10);
+  const dayResetMilliseconds = secondsUntilUtcReset(now) * 1000;
+  const daily = hitLocal(`daily:${dayBucket}:${actor}`, now, dayResetMilliseconds, dailyLimit);
+  if (!daily.allowed) return { ...daily, retryAfterSeconds: Math.ceil(dayResetMilliseconds / 1000), backend, reason: "daily_actor" };
+  const provider = hitLocal(`provider:${dayBucket}:${input.provider}`, now, dayResetMilliseconds,
     numberEnv("RATE_LIMIT_DEEPSEEK_DAILY", 30));
+  if (!provider.allowed) return { ...provider, retryAfterSeconds: Math.ceil(dayResetMilliseconds / 1000), backend, reason: "provider_daily" };
   return { ...provider, backend };
+}
+
+function secondsUntilUtcReset(now: number) {
+  const date = new Date(now);
+  const nextUtcDay = Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate() + 1);
+  return Math.max(1, Math.ceil((nextUtcDay - now) / 1000));
 }
 
 function hitLocal(key: string, now: number, duration: number, maximum: number) {

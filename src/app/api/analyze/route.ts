@@ -6,7 +6,7 @@ import { inspectUrl } from "@/lib/analysis/url";
 import { buildAnalysisPrompt } from "@/lib/analysis/prompts";
 import { analyzeWithDeepSeek } from "@/lib/ai/deepseek";
 import { publicError } from "@/lib/ai/errors";
-import { takeQuota } from "@/lib/security/rate-limit";
+import { quotaLimitMessage, takeQuota } from "@/lib/security/rate-limit";
 import { getAuthenticatedUser } from "@/lib/supabase/server";
 import { privateJson } from "@/lib/http";
 
@@ -55,7 +55,7 @@ export async function POST(request: Request) {
       modelReport = { summary: "Đây là báo cáo minh họa; AI chưa được gọi.", riskLevel: "insufficient", findings: ruleFindings, checklist: ["Không chuyển tiền hoặc gửi mã xác thực chỉ dựa trên nội dung này.", "Tự mở ứng dụng/kênh liên hệ chính thức để xác minh."], limitations: ["Chế độ demo dùng quy tắc mẫu, không gọi AI."] };
     } else {
       const quota = await takeQuota({ ip, userId: userState.user?.id, provider: "deepseek" });
-      if (!quota.allowed) return privateJson({ error: "Bạn đã hết lượt hiện tại. Hãy thử lại sau." }, 429, { "Retry-After": String(quota.retryAfterSeconds) });
+      if (!quota.allowed) return privateJson({ error: quotaLimitMessage(quota), retryAfterSeconds: quota.retryAfterSeconds }, 429, { "Retry-After": String(quota.retryAfterSeconds) });
       const prompt = buildAnalysisPrompt({ type: input.type, content: source, context: input.context, sender: input.sender, replyTo: input.replyTo, subject: input.subject, ruleFindings });
       modelReport = await analyzeWithDeepSeek(prompt);
     }

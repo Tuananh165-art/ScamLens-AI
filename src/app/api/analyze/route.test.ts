@@ -1,10 +1,17 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { analyzeWithDeepSeek } from "@/lib/ai/deepseek";
+import { takeQuota } from "@/lib/security/rate-limit";
 import { POST } from "./route";
 
 vi.mock("@/lib/ai/deepseek", () => ({
   analyzeWithDeepSeek: vi.fn(),
   readImage: vi.fn(),
+}));
+vi.mock("@/lib/security/rate-limit", () => ({
+  takeQuota: vi.fn().mockResolvedValue({ allowed: true, retryAfterSeconds: 0, backend: "local" }),
+  quotaLimitMessage: (result: { reason?: string; retryAfterSeconds: number }) => result.reason === "per_minute"
+    ? `Bạn đã đạt giới hạn lượt trong một phút. Hãy thử lại sau khoảng ${result.retryAfterSeconds} giây.`
+    : "Bạn đã dùng hết lượt hôm nay.",
 }));
 
 afterEach(() => {
@@ -19,7 +26,7 @@ async function analyze(content: string) {
     body: JSON.stringify({ type: "message", content }),
   });
   const response = await POST(request);
-  return { status: response.status, body: await response.json() };
+  return { status: response.status, retryAfter: response.headers.get("Retry-After"), body: await response.json() };
 }
 
 describe("POST /api/analyze", () => {
@@ -75,5 +82,18 @@ describe("POST /api/analyze", () => {
 
     expect(result.status).toBe(502);
     expect(result.body.error).toContain("DeepSeek");
+  });
+
+  it("explains the app per-minute quota and returns the retry delay", async () => {
+    vi.stubEnv("SCAMLENS_DEMO_MODE", "false");
+    vi.mocked(takeQuota).mockResolvedValueOnce({ allowed: false, retryAfterSeconds: 18, backend: "upstash", reason: "per_minute" });
+
+    const result = await analyze("Nội dung mẫu cần kiểm tra.");
+
+    expect(result.status).toBe(429);
+    expect(result.retryAfter).toBe("18");
+    expect(result.body.retryAfterSeconds).toBe(18);
+    expect(result.body.error).toContain("sau khoảng 18 giây");
+    expect(analyzeWithDeepSeek).not.toHaveBeenCalled();
   });
 });
