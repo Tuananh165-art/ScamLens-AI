@@ -101,7 +101,8 @@ export function HomeApp({ signedIn, email, authConfigured }: Props) {
       setOcrText(result.text); setOcrNotes([...(result.uncertainParts ?? []).map((part: string) => `Chưa chắc: ${part}`), ...(result.notes ?? [])]);
       setImageStep("review"); setOcrConfirmed(false);
     } catch (error) {
-      setImageStep("select"); setRedactedImage(null); setImagePreview(""); setFeedback({ kind: "error", text: error instanceof Error ? error.message : "Không đọc được ảnh." });
+      // OCR/provider failures should not discard the locally redacted image; the user can retry after fixing configuration.
+      setImageStep("select"); setFeedback({ kind: "error", text: error instanceof Error ? error.message : "Không đọc được ảnh." });
     } finally { setBusy(false); }
   }
 

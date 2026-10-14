@@ -41,6 +41,8 @@ Không lưu secret trong GitHub Actions CI. `.env.example` chỉ chứa placehol
 6. Chọn Production và Preview cho các biến phù hợp; tránh copy secret sang branch không tin cậy. Nhấn Save.
 7. Deploy; kiểm tra build log không in env.
 
+Nếu app báo thiếu `DEEPSEEK_API_KEY`/`DEEPSEEK_MODEL`, kiểm tra cột **Environments** của từng biến. Biến chỉ có scope **Preview** không được cấp cho Production. Mở Deployments để xem deployment URL đang lỗi chạy ở môi trường nào; thêm hai biến vào đúng môi trường đó (thường nên chọn cả Production và Preview cho demo cá nhân), lưu rồi tạo deployment mới. Environment Variables mới không được gắn ngược vào deployment cũ. Sau deployment, mở `https://<DOMAIN>/api/health`: `services.textAi` và `services.imageAi` phải là `true`. Giá trị `true` chỉ chứng minh biến có mặt, chưa xác minh key/model gọi được.
+
 Sau migration provider, chỉ giữ `DEEPSEEK_API_KEY` và `DEEPSEEK_MODEL` trong nhóm AI. Xóa `GEMINI_API_KEY`, `GEMINI_MODEL` và các biến Zen cũ (`AI_ENDPOINT`, `AI_API_KEY`, `AI_MODEL`) khỏi Production/Preview rồi redeploy để áp dụng cấu hình mới.
 
 AI keys và Upstash REST token luôn server-only. Supabase URL và anon/publishable key là key public có RLS bảo vệ; tuyệt đối không cấu hình service-role key.
@@ -66,6 +68,8 @@ Mở `https://<DOMAIN>/api/health`; chỉ xác nhận biến cấu hình tồn t
 4. Xác minh tab Network không thấy URL trang đáng ngờ được fetch.
 5. Xem log Vercel; bảo đảm không có nội dung người dùng hoặc key.
 6. Ghi kết quả `pass`, `blocked`, `unverified` vào báo cáo nghiệm thu; xóa báo cáo fixture.
+
+Nếu phần ảnh báo lỗi, chọn ảnh và bấm **Tiếp tục với ảnh đã che** chỉ chuẩn bị ảnh trong trình duyệt; request mạng tới `/api/ocr` chỉ chạy khi bấm **Đọc ảnh đã che bằng DeepSeek**. Trong DevTools → Network, xem status và JSON response của `/api/ocr`: 503 với lỗi cấu hình thường cùng nguyên nhân scope/deployment ở trên; 413 là vượt giới hạn request; 415 là định dạng/signature không được hỗ trợ; 401/403/402/429 đến từ quyền, số dư hoặc quota nhà cung cấp. Sau khi sửa cấu hình, redeploy rồi thử lại. Giao diện giữ ảnh đã che để retry nếu OCR API tạm lỗi.
 
 ## 5. Cập nhật an toàn
 

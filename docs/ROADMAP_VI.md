@@ -22,7 +22,7 @@ Trạng thái migration ghi nhận ngày 15/10/2026. `PASS` chỉ áp dụng cho
 - [x] Upload một ảnh, giới hạn kích thước, kiểm tra MIME/signature; browser re-encode và vẽ vùng che đặc trước upload.
 - [x] DeepSeek đọc ảnh đã xử lý; người dùng xem/sửa/xác nhận bản chữ trước khi gửi DeepSeek phân tích.
 - [x] Ảnh gốc không được lưu cùng báo cáo.
-- [ ] Bộ sáu ảnh fixture và E2E sửa OCR — chưa có bằng chứng tự động trong phiên này; demo thủ công chỉ dùng ảnh giả.
+- [ ] Bộ sáu ảnh fixture và OCR live — chưa hoàn tất. E2E chọn/tái mã hóa ảnh và giữ ảnh để retry khi OCR trả lỗi cấu hình đã pass bằng mock; chưa chứng minh chất lượng OCR từ DeepSeek live.
 
 ## M4 — Đăng nhập, lịch sử và quota
 
@@ -36,7 +36,7 @@ Trạng thái migration ghi nhận ngày 15/10/2026. `PASS` chỉ áp dụng cho
 
 - [x] Giao diện responsive và tài liệu setup, dịch vụ, riêng tư, test/demo, deploy bằng tiếng Việt.
 - [x] GitHub Actions chạy lint, typecheck, unit test và build với Node.js 24; không gọi AI trong CI.
-- [x] Lint, typecheck, unit/API tests, Playwright E2E và production build — source DeepSeek: lint/typecheck pass; 5 file test, 17 test pass; E2E 5/5 pass; production build pass.
+- [x] Lint, typecheck, unit/API tests, Playwright E2E và production build — source DeepSeek: lint/typecheck pass; 5 file test, 17 test pass; E2E 6/6 pass; production build pass.
 - [ ] Vercel — cần redeploy source mới với DeepSeek env và xác minh workflow live trên deployment.
 
 ## Lệnh tái hiện kiểm tra local

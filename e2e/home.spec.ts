@@ -18,6 +18,36 @@ test("message can be prepared and its review checkbox gates sending", async ({ p
   await expect(page.getByRole("button", { name: /Phân tích tin nhắn/ })).toBeVisible();
 });
 
+test("OCR provider failure preserves the locally redacted image for retry", async ({ page }) => {
+  let attempts = 0;
+  await page.route("**/api/ocr", async (route) => {
+    attempts += 1;
+    await route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ error: "Chưa cấu hình DEEPSEEK_API_KEY hoặc DEEPSEEK_MODEL." }) });
+  });
+  await page.goto("/");
+  await page.getByRole("tab", { name: "Ảnh chụp" }).click();
+  const imageBase64 = await page.evaluate(() => {
+    const canvas = document.createElement("canvas");
+    canvas.width = 4; canvas.height = 4;
+    const context = canvas.getContext("2d");
+    if (!context) throw new Error("Canvas unavailable");
+    context.fillStyle = "#fff"; context.fillRect(0, 0, 4, 4);
+    return canvas.toDataURL("image/png").split(",")[1];
+  });
+  await page.locator('input[type="file"]').setInputFiles({
+    name: "sample.png",
+    mimeType: "image/png",
+    buffer: Buffer.from(imageBase64!, "base64"),
+  });
+  await page.getByRole("button", { name: "Tiếp tục với ảnh đã che" }).click();
+  await page.getByRole("button", { name: "Đọc ảnh đã che bằng DeepSeek" }).click();
+  await expect(page.locator(".feedback-error")).toContainText("Chưa cấu hình DEEPSEEK_API_KEY");
+  await expect(page.getByRole("img", { name: "Ảnh đã che được chuẩn bị trong trình duyệt" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Đọc ảnh đã che bằng DeepSeek" })).toBeVisible();
+  await page.getByRole("button", { name: "Đọc ảnh đã che bằng DeepSeek" }).click();
+  await expect.poll(() => attempts).toBe(2);
+});
+
 test("guide explains independent verification and privacy", async ({ page }) => {
   await page.goto("/guide");
   await expect(page.getByRole("heading", { name: "Bình tĩnh trước khi làm theo." })).toBeVisible();

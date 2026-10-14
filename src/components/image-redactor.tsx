@@ -11,6 +11,7 @@ export function ImageRedactor({ onPrepared, onClear }: { onPrepared(file: File):
   const startRef = useRef<{ x: number; y: number } | null>(null);
   const [source, setSource] = useState("");
   const [rects, setRects] = useState<Rect[]>([]);
+  const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const [filename, setFilename] = useState("");
   const [error, setError] = useState("");
 
@@ -18,12 +19,14 @@ export function ImageRedactor({ onPrepared, onClear }: { onPrepared(file: File):
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext("2d");
     const image = originalRef.current;
-    if (!canvas || !ctx || !image) return;
+    if (!canvas || !ctx || !image || !dimensions.width || !dimensions.height) return;
+    canvas.width = dimensions.width;
+    canvas.height = dimensions.height;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
     ctx.fillStyle = "#273043";
     rects.forEach((rect) => ctx.fillRect(rect.x * canvas.width, rect.y * canvas.height, rect.width * canvas.width, rect.height * canvas.height));
-  }, [source, rects]);
+  }, [source, rects, dimensions]);
 
   function loadImage(file: File) {
     setError("");
@@ -37,13 +40,8 @@ export function ImageRedactor({ onPrepared, onClear }: { onPrepared(file: File):
       const scale = Math.min(1, max / Math.max(image.naturalWidth, image.naturalHeight));
       const width = Math.max(1, Math.round(image.naturalWidth * scale));
       const height = Math.max(1, Math.round(image.naturalHeight * scale));
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-      canvas.width = width; canvas.height = height;
-      const context = canvas.getContext("2d");
-      if (!context) return;
-      context.drawImage(image, 0, 0, width, height);
-      setRects([]); setFilename(file.name); setSource(objectUrl); originalRef.current = image;
+      setDimensions({ width, height });
+      setRects([]); setFilename(file.name); originalRef.current = image; setSource(objectUrl);
     };
     image.onerror = () => { URL.revokeObjectURL(objectUrl); setError("Không thể đọc ảnh này."); };
     image.src = objectUrl;
