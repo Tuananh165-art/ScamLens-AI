@@ -74,6 +74,27 @@ describe("DeepSeek adapter", () => {
     expect(request.messages[0].content).toContain("text, uncertainParts và notes luôn bắt buộc");
   });
 
+  it("keeps readable OCR text when optional receipt fields have incompatible types", async () => {
+    vi.stubEnv("DEEPSEEK_API_KEY", "test-key");
+    vi.stubEnv("DEEPSEEK_MODEL", "deepseek-v4-flash");
+    mockCompletion(JSON.stringify({
+      text: "Số tiền 3.600.000 VND; người nhận: cửa hàng.",
+      notes: [],
+      structuredData: {
+        amount: "3.600.000 VND",
+        bankName: 42,
+        recipientName: "x".repeat(200),
+        transferType: "instant",
+        inconsistencies: ["Cần kiểm tra lại", 42],
+      },
+    }));
+
+    const result = await readImage(Buffer.from([1, 2, 3]), "image/png");
+    expect(result.text).toContain("Số tiền 3.600.000 VND");
+    expect(result.structuredData).toMatchObject({ amount: 3_600_000, transferType: "unknown", inconsistencies: ["Cần kiểm tra lại"] });
+    expect(result.notes).toContain("Một số trường thông tin giao dịch chưa đọc được rõ; vui lòng kiểm tra lại ảnh.");
+  });
+
   it("maps DeepSeek rate limiting to HTTP 429 without exposing provider data", async () => {
     vi.stubEnv("DEEPSEEK_API_KEY", "test-key");
     vi.stubEnv("DEEPSEEK_MODEL", "deepseek-v4-flash");

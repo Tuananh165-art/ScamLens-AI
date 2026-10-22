@@ -2,8 +2,9 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import {
-  ArrowRight, ArrowUpRight, BadgeCheck, BookOpenText, Check,
+  ArrowRight, ArrowUpRight, BadgeCheck, Check,
   ChevronDown, CircleHelp, Clock3, Copy, FileImage, FileText, Fingerprint,
   Link2, LoaderCircle, LockKeyhole, Mail, MessageCircle,
   Shield, ShieldAlert, ShieldCheck, Sparkles, TriangleAlert, Upload,
@@ -11,7 +12,7 @@ import {
 import { ImageRedactor } from "@/components/image-redactor";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { LogoutButton } from "@/components/logout-button";
-import { redactSensitiveText } from "@/lib/analysis/redact";
+import { countSensitiveMatches, redactSensitiveText } from "@/lib/analysis/redact";
 import { demoCaseStudies } from "@/lib/analysis/case-studies";
 import { detectLiveHeuristics } from "@/lib/analysis/heuristics";
 import { reviewReceiptData } from "@/lib/analysis/receipt";
@@ -20,7 +21,7 @@ import type { AnalysisReport, AnalyzeRequest } from "@/lib/analysis/schema";
 
 type InputType = "message" | "email" | "image" | "url";
 type Feedback = { kind: "error" | "success" | "info"; text: string } | null;
-type Props = { signedIn: boolean; email: string | null; authConfigured: boolean; authError?: boolean };
+type Props = { signedIn: boolean; email: string | null; avatarUrl: string | null; authConfigured: boolean; authError?: boolean };
 
 const types: Array<{ id: InputType; label: string; icon: typeof MessageCircle }> = [
   { id: "message", label: "Tin nhắn", icon: MessageCircle },
@@ -37,7 +38,7 @@ const receiptFieldLabels: Record<string, string> = {
   recipientAccount: "Tài khoản người nhận", recipientBank: "Ngân hàng nhận", transactionTime: "Thời điểm ghi trên ảnh",
   referenceNumber: "Mã tham chiếu", transferType: "Loại chuyển khoản",
 };
-export function HomeApp({ signedIn, email, authConfigured, authError = false }: Props) {
+export function HomeApp({ signedIn, email, avatarUrl, authConfigured, authError = false }: Props) {
   const [type, setType] = useState<InputType>("message");
   const [content, setContent] = useState("");
   const [context, setContext] = useState("");
@@ -65,6 +66,7 @@ export function HomeApp({ signedIn, email, authConfigured, authError = false }: 
     replyTo: autoRedact ? redactSensitiveText(replyTo) : replyTo,
     subject: autoRedact ? redactSensitiveText(subject) : subject,
   }), [autoRedact, content, context, sender, replyTo, subject]);
+  const detectedSensitiveCount = useMemo(() => countSensitiveMatches([content, context, sender, replyTo, subject].filter(Boolean).join("\n")), [content, context, sender, replyTo, subject]);
   const liveSourceText = [content, context, sender, replyTo, subject].filter(Boolean).join("\n");
   const liveSignals = useMemo(() => detectLiveHeuristics(liveSourceText), [liveSourceText]);
   const [settledSignals, setSettledSignals] = useState(liveSignals);
@@ -188,7 +190,7 @@ export function HomeApp({ signedIn, email, authConfigured, authError = false }: 
     <header className="topbar">
       <Link href="/" className="brand" aria-label="ScamLens AI trang chủ"><span className="brand-mark"><Shield size={20} strokeWidth={2.1} /><span className="brand-spark"><Sparkles size={10} /></span></span><span className="brand-word">scamlens<span>.</span><small>AI</small></span></Link>
       <nav className="top-nav" aria-label="Điều hướng chính"><Link className="nav-active" href="/#analyze">Phân tích</Link><Link href="/guide">Cách tự bảo vệ</Link><Link href="/guide#privacy">Quyền riêng tư</Link></nav>
-      <div className="account-area"><ThemeToggle />{signedIn ? <><Link className="account-link" href="/history"><Clock3 size={15} /> Lịch sử</Link><span className="account-email" title={email ?? undefined}>{email ?? "Đã đăng nhập"}</span><LogoutButton /></> : authConfigured ? <a href="/auth/login" className="sign-in"><span className="google-g">G</span> Đăng nhập <ArrowUpRight size={14} /></a> : <span className="setup-state"><span /> Cấu hình đăng nhập sau</span>}</div>
+      <div className="account-area"><ThemeToggle />{signedIn ? <><Link className="account-link" href="/history"><Clock3 size={15} /> Lịch sử</Link><span className="account-email" title={email ?? undefined}>{email ?? "Đã đăng nhập"}</span><span className="user-avatar" title={`Đang đăng nhập: ${email ?? "tài khoản Google"}`} aria-label={`Tài khoản ${email ?? "Google"}`}>{avatarUrl ? <Image src={avatarUrl} alt="" width={32} height={32} unoptimized referrerPolicy="no-referrer" /> : email?.[0]?.toUpperCase() ?? "U"}</span><LogoutButton /></> : authConfigured ? <a href="/auth/login" className="sign-in"><span className="google-g">G</span> Đăng nhập <ArrowUpRight size={14} /></a> : <span className="setup-state"><span /> Cấu hình đăng nhập sau</span>}</div>
     </header>
     {authError && <p className="feedback feedback-error" role="alert">Chưa hoàn tất đăng nhập Google. Hãy bắt đầu đăng nhập lại trên cùng domain. Nếu vẫn lỗi, kiểm tra URL callback trong cấu hình Supabase.</p>}
 
@@ -209,7 +211,7 @@ export function HomeApp({ signedIn, email, authConfigured, authError = false }: 
             {!redactedImage ? <ImageRedactor onPrepared={(file) => { setRedactedImage(file); setImagePreview(URL.createObjectURL(file)); setImageStep("select"); setFeedback({ kind: "info", text: "Ảnh đã được che và tái mã hóa trong trình duyệt. Sẵn sàng gửi AI đọc." }); }} onClear={() => { setRedactedImage(null); setImagePreview(""); }} /> : <>
               <div className="redacted-preview"><div className="redacted-preview-image" role="img" aria-label="Ảnh đã che được chuẩn bị trong trình duyệt" style={{ backgroundImage: `url("${imagePreview}")` }} /><button className="text-button" type="button" onClick={() => { setRedactedImage(null); setImagePreview(""); setImageStep("select"); setOcrText(""); setOcrConfirmed(false); }}>Chọn ảnh khác</button></div>
               {imageStep === "select" && <button className="secondary-button full-button" onClick={readUploadedImage} type="button" disabled={busy}><Upload size={16} /> Đọc ảnh đã che bằng AI</button>}
-              {imageStep === "reading" && <div className="working-note"><LoaderCircle className="spin" size={16} /> AI đang đọc ảnh đã che…</div>}
+              {imageStep === "reading" && <div className="working-note loading-shimmer"><LoaderCircle className="spin" size={16} /> AI đang đọc ảnh đã che…</div>}
               {imageStep === "review" && <div className="ocr-review"><div className="review-heading"><span className="step-number">03</span><strong>Đối chiếu nội dung AI nhận diện</strong><span className="review-warning"><CircleHelp size={14} /> Chưa được xác nhận</span></div><textarea className="ocr-textarea" value={ocrText} onChange={(event) => { setOcrText(event.target.value); setOcrConfirmed(false); setPrivacyAcknowledged(false); }} aria-label="Bản đọc chữ từ ảnh, có thể chỉnh sửa" />{ocrStructured && <div className="ocr-structured"><strong>Trường biên lai được nhận diện — hãy đối chiếu thủ công</strong><dl>{Object.entries(ocrStructured).filter(([key, value]) => key !== "inconsistencies" && key !== "transferType" && value !== undefined && value !== "").map(([key, value]) => <div key={key}><dt>{receiptFieldLabels[key] ?? key}</dt><dd>{key === "amount" && typeof value === "number" ? `${value.toLocaleString("vi-VN")} ₫` : String(value)}</dd></div>)}</dl>{reviewReceiptData(ocrStructured, ocrText).length > 0 && <ul className="ocr-notes">{reviewReceiptData(ocrStructured, ocrText).map((note, i) => <li key={i}>{note}</li>)}</ul>}</div>}{ocrNotes.length > 0 && <ul className="ocr-notes">{ocrNotes.map((note, i) => <li key={i}>{note}</li>)}</ul>}<p className="micro-note">Đối chiếu với ảnh bên trên. Nếu có số tài khoản, OTP hoặc số điện thoại, hãy thay bằng ký hiệu trước khi xác nhận.</p><button className="secondary-button full-button" type="button" onClick={confirmOcr}><Check size={16} /> Tôi đã kiểm tra và xác nhận bản đọc</button></div>}
               {imageStep === "confirmed" && <div className="confirmed-box"><span className="confirmed-icon"><BadgeCheck size={18} /></span><div><strong>Bản đọc đã được xác nhận</strong><small>“{ocrText.slice(0, 150)}{ocrText.length > 150 ? "…" : ""}”</small></div><button className="text-button" onClick={() => { setImageStep("review"); setOcrConfirmed(false); setPrivacyAcknowledged(false); }} type="button">Sửa bản đọc</button></div>}
               {imageStep === "confirmed" && <label className="field-label context-field">Ngữ cảnh bổ sung <span>Tùy chọn</span><textarea value={context} onChange={(e) => setContext(e.target.value)} rows={2} maxLength={1000} placeholder="Bạn được gửi ảnh trong hoàn cảnh nào?" /></label>}
@@ -219,13 +221,13 @@ export function HomeApp({ signedIn, email, authConfigured, authError = false }: 
             <label className="field-label" htmlFor="content-input">{type === "message" ? "Nội dung tin nhắn" : type === "email" ? "Nội dung email" : "Đường dẫn cần kiểm tra"}<span>{content.length.toLocaleString("vi-VN")} / 20.000</span></label>
             <textarea id="content-input" className="main-textarea" value={content} onChange={(e) => { setContent(e.target.value.slice(0, 20_000)); setPrivacyAcknowledged(false); }} placeholder={type === "message" ? "Dán tin nhắn đáng ngờ vào đây…\n\nVí dụ: thông báo tài khoản, yêu cầu thanh toán, tin tuyển dụng" : type === "email" ? "Dán phần nội dung email cần kiểm tra…" : "Ví dụ: example.com/secure-account"} maxLength={20_000} />
             <label className="field-label context-field">Ngữ cảnh bổ sung <span>Tùy chọn · cũng sẽ được gửi</span><textarea value={context} onChange={(e) => { setContext(e.target.value); setPrivacyAcknowledged(false); }} rows={2} maxLength={1000} placeholder="Bạn được gửi nội dung này trong hoàn cảnh nào?" /></label>
-            <div className="inline-privacy-toolbar"><label className="switch-label"><input type="checkbox" role="switch" checked={autoRedact} onChange={(event) => { setAutoRedact(event.target.checked); setPrivacyAcknowledged(false); }} /><span>Tự động che mẫu nhạy cảm</span></label><span>{autoRedact && redactedPayload.content !== content ? "Đã che mẫu được nhận diện" : autoRedact ? "Không thấy mẫu phổ biến" : "Tắt"}</span></div>
+            <div className="inline-privacy-toolbar"><label className="switch-label"><input type="checkbox" role="switch" checked={autoRedact} onChange={(event) => { setAutoRedact(event.target.checked); setPrivacyAcknowledged(false); }} /><span>Tự động che mẫu nhạy cảm</span></label><span>{!autoRedact ? "Đang tắt" : detectedSensitiveCount ? `Phát hiện: ${detectedSensitiveCount} mục` : "Chưa phát hiện mẫu phổ biến"}</span></div>
             <details className="payload-preview"><summary>Xem nội dung sẽ gửi</summary><pre>{[redactedPayload.sender && `Người gửi: ${redactedPayload.sender}`, redactedPayload.replyTo && `Reply-To: ${redactedPayload.replyTo}`, redactedPayload.subject && `Tiêu đề: ${redactedPayload.subject}`, redactedPayload.content, redactedPayload.context && `Ngữ cảnh: ${redactedPayload.context}`].filter(Boolean).join("\n")}</pre><p className="micro-note">Tự động che chỉ nhận diện một số mẫu như email, số điện thoại, OTP dạng số và chuỗi số dài. Hãy tự rà soát tên riêng, địa chỉ và dữ liệu nhạy cảm còn lại.</p></details>
           </div>}
 
           <div className="privacy-consent"><label className="check-label"><input type="checkbox" checked={privacyAcknowledged} onChange={(e) => setPrivacyAcknowledged(e.target.checked)} /><span>Tôi đã rà soát nội dung và đồng ý gửi phần hiển thị ở “Xem nội dung sẽ gửi” đến nhà cung cấp AI để phân tích.</span></label><a href="/guide#privacy">Chính sách dữ liệu</a></div>
           {feedback && <div className={`feedback feedback-${feedback.kind}`} role={feedback.kind === "error" ? "alert" : "status"}>{feedback.kind === "error" ? <TriangleAlert size={16} /> : feedback.kind === "success" ? <Check size={16} /> : <CircleHelp size={16} />}{feedback.text}</div>}
-          <button className="primary-button full-button analyze-button" type="button" disabled={!canAnalyze || busy} onClick={analyze}>{busy ? <><LoaderCircle size={16} className="spin" /> Đang phân tích...</> : <><Sparkles size={16} /> Quét dấu hiệu lừa đảo ngay <ArrowRight size={15} /></>}</button>
+          <button className="primary-button full-button analyze-button" type="button" disabled={!canAnalyze || busy} onClick={analyze}>{busy ? <span className="loading-shimmer"><LoaderCircle size={16} className="spin" /> Đang phân tích...</span> : <><Sparkles size={16} /> Quét dấu hiệu lừa đảo ngay <ArrowRight size={15} /></>}</button>
           {!privacyAcknowledged && <p className="below-button-note"><LockKeyhole size={13} /> Nội dung chỉ được gửi sau khi bạn đồng ý.</p>}
         </section>
 
@@ -243,7 +245,6 @@ export function HomeApp({ signedIn, email, authConfigured, authError = false }: 
 
     <section className="how-section"><div className="section-kicker">ĐƯỢC THIẾT KẾ ĐỂ GIÚP BẠN BÌNH TĨNH</div><h2>Hiểu dấu hiệu. <span>Tự kiểm chứng.</span></h2><div className="steps-row"><Step number="01" title="Chia sẻ nội dung" detail="Dán tin nhắn hoặc email, nhập đường dẫn hay tải ảnh đã che." icon={<Upload size={18} />} /><div className="step-connector"><ArrowRight size={15} /></div><Step number="02" title="Xem bằng chứng" detail="Đọc từng dấu hiệu, trích dẫn gốc và phần chưa thể xác minh." icon={<CircleHelp size={18} />} /><div className="step-connector"><ArrowRight size={15} /></div><Step number="03" title="Kiểm tra độc lập" detail="Tạm dừng và tự liên hệ tổ chức qua ứng dụng chính thức." icon={<ShieldCheck size={18} />} /></div></section>
     <footer className="footer"><Link href="/" className="brand footer-brand"><span className="brand-mark"><Shield size={16} /></span><span className="brand-word">scamlens<span>.</span><small>AI</small></span></Link><span>Thận trọng với liên kết và yêu cầu chuyển tiền.</span><nav><Link href="/guide">Hướng dẫn</Link><Link href="/guide#privacy">Quyền riêng tư</Link><span>© 2026 ScamLens AI</span></nav></footer>
-    <nav className="mobile-bottom-bar" aria-label="Điều hướng nhanh"><Link className="bottom-bar-item active" href="/#analyze"><Shield size={18} /><span>Soi rọi</span></Link><Link className="bottom-bar-item" href="/guide"><BookOpenText size={18} /><span>Tự vệ</span></Link><Link className="bottom-bar-item" href="/history"><Clock3 size={18} /><span>Lịch sử</span></Link><ThemeToggle compact /></nav>
   </main>;
 }
 

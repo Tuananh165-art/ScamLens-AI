@@ -19,8 +19,10 @@ Giao diện hiển thị: “AI chưa tạo được kết quả theo định d�
 
 ## Kiểm tra
 
-- `npm.cmd run typecheck`: thành công (`tsc --noEmit`, exit code 0).
-- Chưa chạy test suite hoặc gọi DeepSeek với ảnh gốc trong screenshot. Không có file ảnh đầu vào hoặc payload model gốc trong workspace để tái hiện chính xác dữ liệu đã gây lỗi; cần thử lại thao tác OCR trên ảnh đã che sau khi Next dev server nạp source mới.
+- `npm.cmd run test`: 60/60 unit test đạt; có regression test cho `structuredData` chứa sai kiểu và amount dạng `3.600.000 VND`.
+- `npm.cmd run smoke:ai`: DeepSeek trả JSON hợp lệ cho văn bản và OCR ảnh mẫu.
+- `npm.cmd run typecheck`, `npm.cmd run lint`, `npm.cmd run build`: đều đạt sau cập nhật.
+- Chưa có file ảnh đầu vào hoặc payload model gốc trong workspace để tái hiện chính xác dữ liệu đã gây lỗi. Smoke dùng ảnh 1×1; cần thử lại thao tác OCR trên ảnh đã che trong trình duyệt để xác nhận tình huống cụ thể.
 
 ## Nếu vẫn gặp lỗi
 

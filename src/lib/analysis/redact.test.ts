@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { hasSensitiveText, redactSensitiveText } from "./redact";
+import { countSensitiveMatches, hasSensitiveText, redactSensitiveText } from "./redact";
 
 describe("redactSensitiveText", () => {
   it("masks email, Vietnamese phone, and digit runs", () => {
@@ -29,5 +29,9 @@ describe("redactSensitiveText", () => {
     const message = "Hãy gửi mã OTP để xác minh ngay.";
     expect(redactSensitiveText(message)).toBe(message);
     expect(hasSensitiveText(message)).toBe(false);
+  });
+
+  it("counts unique values using the same ordered rules as redaction", () => {
+    expect(countSensitiveMatches("OTP: 123456, email linh@example.com, phone 0912345678")).toBe(3);
   });
 });

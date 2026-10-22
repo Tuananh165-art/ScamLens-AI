@@ -10,6 +10,45 @@ Cập nhật: 22/10/2026
 4. Tái cấu trúc luồng nhập/đồng thuận, báo cáo bằng chứng, checklist, công cụ che ảnh và hệ thống giao diện desktop/mobile.
 5. Chạy lint, typecheck, unit, E2E, build và smoke provider; ghi lại lỗi môi trường và lần sửa.
 
+## Checklist triển khai theo tài liệu gốc
+
+### Bước 1 — Adapter AI và bằng chứng
+
+- [x] 2.1: Nới giới hạn report và chuẩn hóa payload trước Zod tại `src/lib/analysis/schema.ts`, `src/lib/ai/deepseek.ts`.
+- [x] 2.2: Dùng `DEEPSEEK_VISION_MODEL` riêng, không whitelist tên model tại `src/lib/ai/deepseek.ts`.
+- [x] 2.3, 5.1: Khớp bằng chứng qua biến thể hoa/thường, khoảng trắng, dấu câu; vẫn lưu tọa độ lát cắt nguyên văn tại `src/lib/analysis/evidence.ts` và render trong `src/components/home-app.tsx`.
+- [x] 2.5: Bổ sung phân tích social engineering, ràng buộc bằng chứng và ngôn ngữ thận trọng tại `src/lib/analysis/prompts.ts`.
+- [x] Bổ sung bóc tách redirect nhiều tầng ngoại tuyến và regression test tại `src/lib/analysis/url.ts`.
+
+### Bước 2 — Demo và cảm biến cục bộ
+
+- [x] 2.4, mục 3: Thay demo bằng 8 tình huống có thể chọn, đánh nhãn tình huống tổng hợp giả lập tại `src/lib/analysis/case-studies.ts` và `src/components/home-app.tsx`.
+- [x] 4.6: Thêm cảm biến regex debounce 150 ms; hiển thị câu khớp và cảnh báo nhận nhầm/bỏ sót tại `src/lib/analysis/heuristics.ts` và `src/components/home-app.tsx`.
+- [x] 4.3: Thay tranh CSS giả lập bằng radar scan CSS responsive, có nhãn cục bộ và không đưa số liệu/tin tức giả.
+
+### Bước 3 — UI/UX và quyền riêng tư
+
+- [x] 4.1, 4.9: Thêm design tokens/semantic colors, nền dark slate và trạng thái focus trong `src/app/theme.css`; xác nhận không có chữ DOM dưới 12 px ở viewport Chromium 390 px.
+- [x] 4.2: Header 72 px, trạng thái điều hướng, avatar hình tròn 32 px khi OAuth metadata có ảnh; thanh đáy chung cho trang phân tích, hướng dẫn và lịch sử.
+- [x] 4.4: Một vùng nhập, xem payload đã che, bật/tắt che tự động, đếm mẫu nhạy cảm theo cùng bộ regex che và một checkbox đồng thuận mặc định bỏ chọn; sửa nội dung sẽ hủy đồng thuận.
+- [x] 4.5: Canvas ảnh có Undo/Redo, pointer handling, paste có focus, tái mã hóa ảnh và thu hồi Object URL.
+- [x] 4.7: Tô sáng bằng chứng trong nguồn, giải thích theo hover/title, bốn nhóm tín hiệu không hiển thị giả xác suất; checklist lưu theo report trong localStorage.
+- [x] 4.8: Nâng touch target và typography mobile; có kiểm tra không tràn ngang và giảm chuyển động.
+- [x] 4.10: Thêm trạng thái shimmer, phản hồi nhấn và radar animation; tôn trọng `prefers-reduced-motion`.
+
+### Bước 4 — URL và dữ liệu biên lai
+
+- [x] 5.3: Soi URL offline: IDN/punycode, Unicode đồng hình phổ biến, port lạ, userinfo, IP, thương hiệu mạo danh và đích redirect lồng; không fetch URL.
+- [x] 5.4: OCR trả trường biên lai tùy chọn; giao diện yêu cầu người dùng đối chiếu; phát hiện chênh lệch số/chữ, chuỗi mã tuần tự đơn giản và loại chuyển khoản mâu thuẫn.
+- [x] Sửa lỗi schema OCR: dữ liệu giao dịch sai kiểu không còn làm mất OCR text; regression nằm trong `src/lib/ai/deepseek.test.ts`.
+- [~] 5.2: Đã có metadata signature hint offline. Không triển khai ELA/compression score `0–100`: chưa có tập ảnh gắn nhãn và thuật toán hiệu chuẩn; kết quả score cố định theo metadata dễ khiến người dùng coi là kết luận. Giới hạn và đề xuất nghiên cứu được ghi tại mục dưới.
+
+### Bước 5 — Nghiệm thu
+
+- [x] Chạy đủ 5 lệnh kiểm chuẩn mục 6 và 10 E2E Chromium trên server riêng.
+- [x] Chụp/kiểm tra trực quan production local ở desktop và mobile; không thay thế thử trên iOS/Android thật.
+- [ ] Chủ dự án thao tác thủ công: kiểm thử OAuth/RLS bằng hai tài khoản, xác nhận nội dung OCR trên ảnh đầu vào thực tế của người dùng, và nghiệm thu mobile/accessibility trên thiết bị.
+
 ## Kết quả theo yêu cầu
 
 | Yêu cầu | Kết quả |
@@ -19,7 +58,7 @@ Cập nhật: 22/10/2026
 | Bằng chứng | Đối chiếu chính xác trước, sau đó chuẩn hóa hoa/thường, khoảng trắng và dấu câu; kết quả luôn giữ `quote/start/end` theo lát cắt nguyên văn nguồn. |
 | Tám case study | Có đủ tám lựa chọn ở giao diện và nội dung giả lập theo các kịch bản trong tài liệu. Chúng được gắn nhãn tình huống tổng hợp, không tuyên bố là hồ sơ vụ án có nguồn. |
 | Prompt hành vi | Bổ sung các cơ chế áp lực, mạo danh, chân trong cửa, chi phí chìm, tài khoản thứ ba và lời hứa lợi nhuận; bắt buộc có bằng chứng và ngôn ngữ thận trọng. |
-| Design system và điều hướng | Bổ sung tokens, màu semantic, nền dark slate, trạng thái focus, nav desktop và thanh đáy mobile; radar minh họa ghi rõ là cục bộ, không phải dữ liệu sự cố trực tiếp. |
+| Design system và điều hướng | Bổ sung tokens, màu semantic, nền dark slate, trạng thái focus, nav desktop, thanh đáy mobile dùng chung mọi trang, avatar tròn nếu nhà cung cấp xác thực có ảnh; radar minh họa ghi rõ là cục bộ, không phải dữ liệu sự cố trực tiếp. |
 | Nhập liệu/riêng tư | Một nút phân tích cùng một checkbox đồng thuận; toggle che mẫu nhạy cảm; có thể mở xem chính xác payload sẽ gửi. Mọi sửa nội dung hoặc toggle che sẽ hủy đồng thuận cũ. |
 | Canvas ảnh | Undo/redo, xử lý pointer để tránh cuộn trang, dán ảnh khi canvas đang được focus và thu hồi object URL. |
 | Cảm biến rủi ro | Heuristic cục bộ debounce 150 ms cho áp lực thời gian, thông tin xác thực và tự xưng tổ chức; giao diện nêu rõ có thể nhận nhầm/bỏ sót. |
@@ -32,8 +71,8 @@ Cập nhật: 22/10/2026
 
 - `npm.cmd run lint` — đạt.
 - `npm.cmd run typecheck` — đạt.
-- `npm.cmd run test` — 15 file, 57 test đạt.
-- `npm.cmd run test:e2e` — 10 test Chromium đạt, gồm consent, preview che dữ liệu, highlight report, checklist localStorage, luồng retry ảnh, theme/mobile overflow.
+- `npm.cmd run test` — 15 file, 60 test đạt; gồm regression OCR khi trường biên lai sai kiểu, bóc tách redirect nhiều lớp và đếm mẫu nhạy cảm.
+- `npm.cmd run test:e2e` — 10 test Chromium đạt, gồm consent, preview che dữ liệu, highlight report, checklist localStorage, luồng retry ảnh, theme/mobile overflow và menu đáy trên mobile.
 - E2E xác nhận trên viewport 390 px: không tràn ngang và không có text DOM dưới 12 px.
 - `npm.cmd run build` — đạt; Next tạo đủ static pages và route.
 - `npm.cmd run smoke:ai` — DeepSeek text và image OCR đều trả JSON hợp lệ và qua schema sau sanitizer. Smoke gọi provider bằng nội dung mẫu và ảnh 1×1, dùng quota API.
@@ -45,6 +84,7 @@ Cập nhật: 22/10/2026
 - Lần build sandbox đầu biên dịch được nhưng Next không spawn được worker TypeScript (`spawn EPERM`); build trong execution context được phép đã đạt.
 - Smoke đầu tiên nhận JSON hợp lệ nhưng script cũ kiểm tra giới hạn schema cũ và không dùng sanitizer của ứng dụng. Đã đồng bộ validator, chạy lại một lần; cả text và OCR đạt.
 - Lần E2E đầu có locator mơ hồ giữa `<summary>` và nội dung đồng thuận; sửa locator. Bộ E2E cuối cùng đạt.
+- E2E ban đầu dùng lại `localhost:3000`, vốn đang phục vụ ứng dụng NaiVerse; chuyển sang server riêng `localhost:3187`, không dùng lại server sẵn có và tắt Supabase trong webServer kiểm thử. Khớp hostname `localhost` để kiểm tra Origin đúng với URL Next nhận.
 - Unit fixture `File.arrayBuffer()` không được jsdom hỗ trợ ở phiên bản đang cài; thay fixture bằng Blob-like test double. API runtime vẫn dùng `File.slice().arrayBuffer()` chuẩn trình duyệt.
 
 ## Giới hạn, đề xuất và việc cần thao tác thủ công

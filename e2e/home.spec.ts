@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 
 test("home renders Vietnamese analysis choices, eight sample situations, and privacy notice", async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: /Tin nhắn này có/ })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Tin nhắn này có.*đáng tin không/ })).toBeVisible();
   await expect(page.getByRole("tab", { name: "Tin nhắn" })).toBeVisible();
   await expect(page.getByRole("checkbox", { name: /Tôi đã rà soát nội dung và đồng ý gửi/ })).toBeVisible();
   await expect(page.locator("#demo-case-select option")).toHaveCount(8);
@@ -11,14 +11,15 @@ test("home renders Vietnamese analysis choices, eight sample situations, and pri
 
 test("message uses inline redaction preview and a single consent gate", async ({ page }) => {
   await page.goto("/");
-  await page.getByLabel(/Nội dung tin nhắn/).fill("Gửi OTP 123456 ngay để tránh khóa tài khoản.");
+  await page.getByLabel("Nội dung tin nhắn").fill("Gửi OTP 123456 ngay để tránh khóa tài khoản.");
+  await expect(page.getByText("Phát hiện: 1 mục")).toBeVisible();
   await page.getByText("Xem nội dung sẽ gửi", { exact: true }).click();
   await expect(page.locator(".payload-preview pre")).toContainText("OTP [OTP ĐÃ CHE]");
   const analyze = page.getByRole("button", { name: /Quét dấu hiệu lừa đảo ngay/ });
   await expect(analyze).toBeDisabled();
   await page.getByRole("checkbox", { name: /Tôi đã rà soát nội dung và đồng ý gửi/ }).check();
   await expect(analyze).toBeEnabled();
-  await page.getByLabel(/Nội dung tin nhắn/).fill("Gửi OTP 654321 ngay để tránh khóa tài khoản.");
+  await page.getByLabel("Nội dung tin nhắn").fill("Gửi OTP 654321 ngay để tránh khóa tài khoản.");
   await expect(analyze).toBeDisabled();
 });
 
@@ -38,7 +39,7 @@ test("analysis report highlights verified source quotes and saves checklist stat
     }, demo: false, saved: false }),
   }));
   await page.goto("/");
-  await page.getByLabel(/Nội dung tin nhắn/).fill(content);
+  await page.getByLabel("Nội dung tin nhắn").fill(content);
   await page.getByRole("checkbox", { name: /Tôi đã rà soát nội dung và đồng ý gửi/ }).check();
   await page.getByRole("button", { name: /Quét dấu hiệu lừa đảo ngay/ }).click();
   await expect(page.locator("mark.evidence-mark")).toHaveText(quote);
@@ -121,7 +122,12 @@ test("theme toggle persists across app pages", async ({ page }) => {
   await page.getByRole("button", { name: "Chuyển sang giao diện sáng" }).click();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
   await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/guide");
+  await expect(page.getByRole("navigation", { name: "Điều hướng nhanh" })).toBeVisible();
   await page.goto("/");
+  const mobileNav = page.getByRole("navigation", { name: "Điều hướng nhanh" });
+  await expect(mobileNav).toBeVisible();
+  await expect(mobileNav.getByRole("link")).toHaveCount(3);
   const widths = await page.evaluate(() => ({ viewport: document.documentElement.clientWidth, content: document.documentElement.scrollWidth }));
   expect(widths.content).toBeLessThanOrEqual(widths.viewport);
   const undersizedText = await page.locator("body *").evaluateAll((elements) => elements.flatMap((element) => {

@@ -24,4 +24,13 @@ describe("inspectUrl", () => {
     expect(result.spoofedBrand).toBe("Vietcombank");
     expect(result.signals).toHaveLength(4);
   });
+
+  it("unwraps redirect destinations through multiple offline URL layers", () => {
+    const middle = new URL("https://redirector.example/continue");
+    middle.searchParams.set("q", "https://fake-login.example/sign-in");
+    const outer = new URL("https://short.example/go");
+    outer.searchParams.set("next", middle.href);
+
+    expect(inspectUrl(outer.href).nestedRedirectTarget).toBe("https://fake-login.example/sign-in");
+  });
 });

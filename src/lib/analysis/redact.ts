@@ -15,3 +15,16 @@ export function redactSensitiveText(input: string): string {
 export function hasSensitiveText(input: string): boolean {
   return redactSensitiveText(input) !== input;
 }
+
+export function countSensitiveMatches(input: string): number {
+  let count = 0;
+  let remaining = input;
+  for (const [pattern] of RULES) {
+    const matcher = new RegExp(pattern.source, pattern.flags);
+    remaining = remaining.replace(matcher, () => {
+      count += 1;
+      return "[SENSITIVE]";
+    });
+  }
+  return count;
+}

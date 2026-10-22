@@ -32,13 +32,7 @@ export function inspectUrl(raw: string): UrlSignals {
   const signals: string[] = [];
   const isHomograph = isPunycode || /[^\u0000-\u024f\u1e00-\u1eff.\-\d]/u.test(unicodeHostname);
   const hasAbnormalPort = Boolean(url.port && !["80", "443"].includes(url.port));
-  const redirectKeys = ["redirect", "redirect_uri", "url", "target", "next", "destination", "u", "link", "q"];
-  let nestedRedirectTarget: string | undefined;
-  for (const [key, value] of url.searchParams) {
-    if (!redirectKeys.includes(key.toLowerCase())) continue;
-    const candidateTarget = value.trim();
-    if (/^https?:\/\//i.test(candidateTarget)) { nestedRedirectTarget = candidateTarget; break; }
-  }
+  const nestedRedirectTarget = findNestedRedirect(url);
   const brandChecks = [
     { brand: "VNeID / cổng dịch vụ công", tokens: ["vneid", "dichvucong"], domains: ["vneid.gov.vn", "dichvucong.gov.vn"] },
     { brand: "Vietcombank", tokens: ["vietcombank"], domains: ["vietcombank.com.vn"] },
@@ -58,4 +52,32 @@ export function inspectUrl(raw: string): UrlSignals {
   if (url.protocol === "http:") signals.push("Đường dẫn dùng HTTP thay vì HTTPS.");
 
   return { hostname, registrableDomain, protocol: url.protocol.slice(0, -1), hasUserInfo: Boolean(url.username || url.password), isIpAddress, isPunycode, hasAbnormalPort, nestedRedirectTarget, isHomograph, spoofedBrand, signals };
+}
+
+const redirectKeys = new Set(["redirect", "redirect_uri", "url", "target", "next", "destination", "u", "link", "q"]);
+
+function findNestedRedirect(root: URL): string | undefined {
+  let current = root;
+  let lastRedirectTarget: string | undefined;
+  const visited = new Set<string>([current.href]);
+
+  for (let depth = 0; depth < 4; depth += 1) {
+    let next: URL | undefined;
+    for (const [key, value] of current.searchParams) {
+      if (!redirectKeys.has(key.toLowerCase())) continue;
+      const candidate = value.trim();
+      if (!/^https?:\/\//i.test(candidate)) continue;
+      try {
+        const parsed = new URL(candidate);
+        if (visited.has(parsed.href)) continue;
+        next = parsed;
+        lastRedirectTarget = candidate;
+        break;
+      } catch { /* Ignore malformed redirect values and continue scanning known parameters. */ }
+    }
+    if (!next) return lastRedirectTarget;
+    visited.add(next.href);
+    current = next;
+  }
+  return lastRedirectTarget;
 }
