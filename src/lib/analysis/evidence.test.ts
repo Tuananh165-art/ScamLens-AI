@@ -14,4 +14,14 @@ describe("attachVerifiedEvidence", () => {
   it("drops invented evidence that is absent from the input", () => {
     expect(attachVerifiedEvidence([finding], "source-1", "Xin chào, bạn khỏe không?", false)).toEqual([]);
   });
+
+  it("matches case, spacing, and punctuation variants while preserving the exact source slice", () => {
+    const variant = { ...finding, evidence: "khóa, tài khoản ngay!" };
+    const source = "Cảnh báo: KHÓA TÀI KHOẢN NGAY. Hãy tự kiểm tra.";
+    const result = attachVerifiedEvidence([variant], "source-2", source, false);
+    expect(result).toHaveLength(1);
+    const ref = result[0].evidenceRefs[0];
+    expect(ref.quote).toBe("KHÓA TÀI KHOẢN NGAY");
+    expect(source.slice(ref.start, ref.end)).toBe(ref.quote);
+  });
 });

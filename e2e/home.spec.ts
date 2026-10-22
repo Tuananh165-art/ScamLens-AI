@@ -1,24 +1,51 @@
 import { expect, test } from "@playwright/test";
 
-test("home renders Vietnamese analysis choices and privacy notice", async ({ page }) => {
+test("home renders Vietnamese analysis choices, eight sample situations, and privacy notice", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByRole("heading", { name: /Tin nhắn này có/ })).toBeVisible();
   await expect(page.getByRole("tab", { name: "Tin nhắn" })).toBeVisible();
-  await expect(page.getByRole("checkbox", { name: /nội dung đã che sẽ được gửi cho AI/ })).toBeVisible();
+  await expect(page.getByRole("checkbox", { name: /Tôi đã rà soát nội dung và đồng ý gửi/ })).toBeVisible();
+  await expect(page.locator("#demo-case-select option")).toHaveCount(8);
   await expect(page.getByText(/DeepSeek/i)).toHaveCount(0);
 });
 
-test("message can be prepared and its review checkbox gates sending", async ({ page }) => {
+test("message uses inline redaction preview and a single consent gate", async ({ page }) => {
   await page.goto("/");
-  await page.getByLabel("Nội dung tin nhắn").fill("[MẪU GIẢ LẬP] Gửi OTP ngay để tránh khóa tài khoản.");
-  await page.getByRole("button", { name: /Xem trước nội dung sẽ gửi/ }).click();
-  await expect(page.getByText("Nội dung sẽ gửi đến AI")).toBeVisible();
-  await expect(page.getByText("Không có mẫu được nhận diện")).toBeVisible();
-  await expect(page.getByText(/Không có mẫu trong danh sách tự che/)).toBeVisible();
-  await expect(page.getByRole("button", { name: /Phân tích tin nhắn/ })).toHaveCount(0);
-  await page.getByLabel(/Tôi đã đối chiếu nội dung/).check();
-  await page.getByRole("checkbox", { name: /nội dung đã che sẽ được gửi cho AI/ }).check();
-  await expect(page.getByRole("button", { name: /Phân tích tin nhắn/ })).toBeVisible();
+  await page.getByLabel(/Nội dung tin nhắn/).fill("Gửi OTP 123456 ngay để tránh khóa tài khoản.");
+  await page.getByText("Xem nội dung sẽ gửi", { exact: true }).click();
+  await expect(page.locator(".payload-preview pre")).toContainText("OTP [OTP ĐÃ CHE]");
+  const analyze = page.getByRole("button", { name: /Quét dấu hiệu lừa đảo ngay/ });
+  await expect(analyze).toBeDisabled();
+  await page.getByRole("checkbox", { name: /Tôi đã rà soát nội dung và đồng ý gửi/ }).check();
+  await expect(analyze).toBeEnabled();
+  await page.getByLabel(/Nội dung tin nhắn/).fill("Gửi OTP 654321 ngay để tránh khóa tài khoản.");
+  await expect(analyze).toBeDisabled();
+});
+
+test("analysis report highlights verified source quotes and saves checklist state locally", async ({ page }) => {
+  const content = "Chuyển tiền ngay.";
+  const source = `Nội dung: ${content}`;
+  const quote = "Chuyển tiền ngay";
+  await page.route("**/api/analyze", (route) => route.fulfill({
+    status: 200,
+    contentType: "application/json",
+    body: JSON.stringify({ report: {
+      schemaVersion: "1.0", id: "849e4317-74ef-4d17-b81a-6e04e5470bf2", createdAt: "2026-10-22T10:00:00.000Z", type: "message",
+      riskLevel: "high", summary: "Nội dung thúc ép chuyển tiền ngay.",
+      findings: [{ category: "urgency", severity: "high", title: "Có áp lực hành động", explanation: "Cụm từ thúc ép thời gian cần được xác minh.", evidence: quote, evidenceRefs: [{ sourceId: "sample-source", quote, start: source.indexOf(quote), end: source.indexOf(quote) + quote.length, confirmedByUser: false }] }],
+      checklist: ["Tự mở ứng dụng ngân hàng để kiểm tra."], limitations: ["Người gửi chưa được xác minh."],
+      source: { id: "sample-source", content: source, confirmedOcr: false }, model: { text: "deepseek-v4-flash" },
+    }, demo: false, saved: false }),
+  }));
+  await page.goto("/");
+  await page.getByLabel(/Nội dung tin nhắn/).fill(content);
+  await page.getByRole("checkbox", { name: /Tôi đã rà soát nội dung và đồng ý gửi/ }).check();
+  await page.getByRole("button", { name: /Quét dấu hiệu lừa đảo ngay/ }).click();
+  await expect(page.locator("mark.evidence-mark")).toHaveText(quote);
+  const action = page.getByRole("checkbox", { name: "Tự mở ứng dụng ngân hàng để kiểm tra." });
+  await action.check();
+  await expect(action).toBeChecked();
+  expect(await page.evaluate(() => localStorage.getItem("scamlens-checklist-849e4317-74ef-4d17-b81a-6e04e5470bf2"))).toContain("Tự mở ứng dụng ngân hàng");
 });
 
 test("OCR provider failure preserves the locally redacted image for retry", async ({ page }) => {
@@ -97,4 +124,10 @@ test("theme toggle persists across app pages", async ({ page }) => {
   await page.goto("/");
   const widths = await page.evaluate(() => ({ viewport: document.documentElement.clientWidth, content: document.documentElement.scrollWidth }));
   expect(widths.content).toBeLessThanOrEqual(widths.viewport);
+  const undersizedText = await page.locator("body *").evaluateAll((elements) => elements.flatMap((element) => {
+    const text = element.textContent?.trim();
+    const size = Number.parseFloat(getComputedStyle(element).fontSize);
+    return text && size < 12 ? [{ tag: element.tagName, className: typeof element.className === "string" ? element.className : "", size, text: text.slice(0, 45) }] : [];
+  }));
+  expect(undersizedText).toEqual([]);
 });

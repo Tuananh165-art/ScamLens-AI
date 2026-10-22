@@ -5,6 +5,7 @@ import { deflateSync } from "node:zlib";
 nextEnv.loadEnvConfig(process.cwd());
 
 const model = process.env.DEEPSEEK_MODEL?.trim();
+const visionModel = process.env.DEEPSEEK_VISION_MODEL?.trim() || model;
 const apiKey = process.env.DEEPSEEK_API_KEY?.trim();
 const endpoint = "https://api.deepseek.com/chat/completions";
 
@@ -21,11 +22,11 @@ const findingSchema = z.object({
   evidence: z.string().trim().min(2).max(300),
 });
 const reportSchema = z.object({
-  summary: z.string().trim().min(3).max(600),
+  summary: z.string().trim().min(3).max(1_500),
   riskLevel: z.enum(["low", "medium", "high", "insufficient"]),
   findings: z.array(findingSchema).max(12),
-  checklist: z.array(z.string().trim().min(5).max(220)).max(8),
-  limitations: z.array(z.string().trim().min(5).max(200)).max(8),
+  checklist: z.array(z.string().trim().min(3).max(350)).max(15),
+  limitations: z.array(z.string().trim().min(3).max(350)).max(15),
 });
 const ocrSchema = z.object({
   text: z.string().max(15_000),
@@ -73,7 +74,7 @@ const systemPrompt = [
 
 let failed = false;
 
-async function run(name, messages, validator, maxTokens) {
+async function run(name, messages, validator, maxTokens, requestModel = model) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 45_000);
   try {
@@ -81,7 +82,7 @@ async function run(name, messages, validator, maxTokens) {
       method: "POST",
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        model,
+        model: requestModel,
         messages,
         max_tokens: maxTokens,
         response_format: { type: "json_object" },
@@ -91,7 +92,7 @@ async function run(name, messages, validator, maxTokens) {
       cache: "no-store",
     });
     if (!response.ok) {
-      console.log(JSON.stringify({ provider: "deepseek", capability: name, model, ok: false, status: response.status, error: response.status === 429 ? "provider_rate_limited" : response.status === 401 || response.status === 403 ? "auth_or_model_access_denied" : response.status === 402 ? "balance_or_payment_required" : "request_rejected" }));
+      console.log(JSON.stringify({ provider: "deepseek", capability: name, model: requestModel, ok: false, status: response.status, error: response.status === 429 ? "provider_rate_limited" : response.status === 401 || response.status === 403 ? "auth_or_model_access_denied" : response.status === 402 ? "balance_or_payment_required" : "request_rejected" }));
       failed = true;
       return;
     }
@@ -100,25 +101,39 @@ async function run(name, messages, validator, maxTokens) {
     let parsed;
     try { parsed = typeof choice?.message?.content === "string" ? JSON.parse(choice.message.content) : null; } catch { parsed = null; }
     const validJson = parsed !== null;
-    const validSchema = validJson && validator.safeParse(parsed).success;
+    const normalized = name === "text_report" ? sanitizeReport(parsed) : parsed;
+    const validation = validJson ? validator.safeParse(normalized) : null;
+    const validSchema = Boolean(validation?.success);
     const ok = Boolean(validSchema) && choice?.finish_reason === "stop";
     console.log(JSON.stringify({
       provider: "deepseek",
       capability: name,
-      model,
+      model: requestModel,
       ok,
       validJson,
       validSchema,
+      schemaIssues: validation && !validation.success ? validation.error.issues.map(({ path, code }) => ({ path: path.join("."), code })) : [],
       finishReason: choice?.finish_reason ?? null,
       outputCharacters: typeof choice?.message?.content === "string" ? choice.message.content.length : 0,
     }));
     if (!ok) failed = true;
   } catch (error) {
-    console.log(JSON.stringify({ provider: "deepseek", capability: name, model, ok: false, error: error instanceof Error && error.name === "AbortError" ? "timeout" : "network_or_response_error" }));
+    console.log(JSON.stringify({ provider: "deepseek", capability: name, model: requestModel, ok: false, error: error instanceof Error && error.name === "AbortError" ? "timeout" : "network_or_response_error" }));
     failed = true;
   } finally {
     clearTimeout(timeout);
   }
+}
+
+function sanitizeReport(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return value;
+  const truncate = (item, max) => typeof item === "string" && item.length > max ? `${item.slice(0, max - 1).trimEnd()}…` : item;
+  return {
+    ...value,
+    summary: truncate(value.summary, 1_500),
+    checklist: Array.isArray(value.checklist) ? value.checklist.slice(0, 15).map((item) => truncate(item, 350)) : value.checklist,
+    limitations: Array.isArray(value.limitations) ? value.limitations.slice(0, 15).map((item) => truncate(item, 350)) : value.limitations,
+  };
 }
 
 await run("text_report", [
@@ -127,7 +142,7 @@ await run("text_report", [
 ], reportSchema, 3200);
 
 await run("image_input_ocr", [
-  { role: "system", content: 'Bạn là công cụ OCR tiếng Việt. Chỉ đọc chữ nhìn thấy trong ảnh, không suy đoán chữ mờ, bị che hoặc bị cắt. Ghi phần đọc không chắc trong uncertainParts. Không kết luận ảnh thật/giả hoặc giao dịch thành công. Chỉ trả một JSON object hợp lệ đúng nguyên mẫu sau, không markdown, không thêm khóa: {"text":"Nội dung đọc được","uncertainParts":[],"notes":[]}. Cả ba khóa đều bắt buộc; text luôn là chuỗi, uncertainParts và notes luôn là mảng chuỗi. Nếu ảnh không đọc được, text là chuỗi rỗng và nêu giới hạn trong notes.' },
+  { role: "system", content: 'Bạn là công cụ OCR tiếng Việt. Chỉ đọc chữ nhìn thấy trong ảnh, không suy đoán chữ mờ, bị che hoặc bị cắt. Ghi phần đọc không chắc trong uncertainParts. Không kết luận ảnh thật/giả hoặc giao dịch thành công. Chỉ trả một JSON object hợp lệ: {"text":"Nội dung đọc được","uncertainParts":[],"notes":[],"structuredData":{}}. text, uncertainParts, notes bắt buộc; structuredData tùy chọn và chỉ chứa trường đọc thấy được.' },
   {
     role: "user",
     content: [
@@ -135,6 +150,6 @@ await run("image_input_ocr", [
       { type: "image_url", image_url: { url: `data:image/png;base64,${pngFixture}`, detail: "original" } },
     ],
   },
-], ocrSchema, 1200);
+], ocrSchema, 1200, visionModel);
 
 if (failed) process.exitCode = 1;

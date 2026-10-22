@@ -15,4 +15,13 @@ describe("inspectUrl", () => {
   it("rejects executable protocols", () => {
     expect(() => inspectUrl("javascript:alert(1)")).toThrow("unsupported_protocol");
   });
+
+  it("flags Unicode homographs, nonstandard ports, nested redirects, and impersonated brands without fetching", () => {
+    const result = inspectUrl("https://vіetcombank-login.test:8443/continue?next=https%3A%2F%2Ffake.example");
+    expect(result.isHomograph).toBe(true);
+    expect(result.hasAbnormalPort).toBe(true);
+    expect(result.nestedRedirectTarget).toBe("https://fake.example");
+    expect(result.spoofedBrand).toBe("Vietcombank");
+    expect(result.signals).toHaveLength(4);
+  });
 });

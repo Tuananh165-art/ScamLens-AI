@@ -23,7 +23,7 @@ function getServerThemeSnapshot(): Theme {
   return "light";
 }
 
-export function ThemeToggle() {
+export function ThemeToggle({ compact = false }: { compact?: boolean }) {
   const theme = useSyncExternalStore(subscribe, getThemeSnapshot, getServerThemeSnapshot);
 
   function toggleTheme() {
@@ -34,14 +34,14 @@ export function ThemeToggle() {
 
   return (
     <button
-      className="theme-toggle"
+      className={compact ? "bottom-bar-item theme-bottom-item" : "theme-toggle"}
       type="button"
       onClick={toggleTheme}
       aria-label={theme === "dark" ? "Chuyển sang giao diện sáng" : "Chuyển sang giao diện tối"}
       title={theme === "dark" ? "Giao diện sáng" : "Giao diện tối"}
     >
       {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
-      <span>{theme === "dark" ? "Giao diện sáng" : "Giao diện tối"}</span>
+      <span>{compact ? "Giao diện" : theme === "dark" ? "Giao diện sáng" : "Giao diện tối"}</span>
     </button>
   );
 }

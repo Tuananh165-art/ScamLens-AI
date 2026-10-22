@@ -12,3 +12,4 @@ test-results/
 !.env.local.example
 *.log
 .vercel/
+.vercel

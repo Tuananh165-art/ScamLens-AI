@@ -49,6 +49,16 @@ describe("DeepSeek adapter", () => {
     expect(request.messages[0].content).toContain("tự nhiên, thân thiện, bình tĩnh và chuyên nghiệp");
   });
 
+  it("sanitizes long summaries and trims oversized lists before schema validation", async () => {
+    vi.stubEnv("DEEPSEEK_API_KEY", "test-key");
+    vi.stubEnv("DEEPSEEK_MODEL", "deepseek-v4-flash");
+    mockCompletion(JSON.stringify({ ...report, summary: "a".repeat(1_700), checklist: [...report.checklist, ...Array.from({ length: 17 }, (_, i) => `Kiểm tra bước ${i + 1}`)], limitations: [...report.limitations, ...Array.from({ length: 17 }, (_, i) => `Giới hạn kiểm chứng ${i + 1}`)] }));
+    const result = await analyzeWithDeepSeek("sample");
+    expect(result.summary.length).toBeLessThanOrEqual(1_500);
+    expect(result.checklist).toHaveLength(15);
+    expect(result.limitations).toHaveLength(15);
+  });
+
   it("sends the redacted image inline and validates OCR JSON", async () => {
     vi.stubEnv("DEEPSEEK_API_KEY", "test-key");
     vi.stubEnv("DEEPSEEK_MODEL", "deepseek-v4-flash");
@@ -61,7 +71,7 @@ describe("DeepSeek adapter", () => {
     expect(request.messages[1].content[1].image_url.url).toBe("data:image/png;base64,AQID");
     expect(request.messages[0].content).toContain("Chỉ trả về một JSON object hợp lệ");
     expect(request.messages[0].content).toContain('"text":"Nội dung đọc được","uncertainParts":[],"notes":[]');
-    expect(request.messages[0].content).toContain("Tất cả ba khóa đều bắt buộc");
+    expect(request.messages[0].content).toContain("text, uncertainParts và notes luôn bắt buộc");
   });
 
   it("maps DeepSeek rate limiting to HTTP 429 without exposing provider data", async () => {
@@ -76,13 +86,13 @@ describe("DeepSeek adapter", () => {
     });
   });
 
-  it("rejects models outside the supported DeepSeek vision model set", async () => {
+  it("uses a separately configured vision model for OCR", async () => {
     vi.stubEnv("DEEPSEEK_API_KEY", "test-key");
-    vi.stubEnv("DEEPSEEK_MODEL", "deepseek-v4-pro");
-    const fetchMock = vi.fn();
-    vi.stubGlobal("fetch", fetchMock);
-
-    await expect(readImage(Buffer.from([1]), "image/png")).rejects.toThrow("deepseek_vision_model_unsupported");
-    expect(fetchMock).not.toHaveBeenCalled();
+    vi.stubEnv("DEEPSEEK_MODEL", "deepseek-chat");
+    vi.stubEnv("DEEPSEEK_VISION_MODEL", "deepseek-v4-flash");
+    mockCompletion(JSON.stringify({ text: "Nội dung đã che", uncertainParts: [], notes: [] }));
+    const result = await readImage(Buffer.from([1]), "image/png");
+    expect(result.model).toBe("deepseek-v4-flash");
+    expect(JSON.parse(String(vi.mocked(fetch).mock.calls[0][1]?.body)).model).toBe("deepseek-v4-flash");
   });
 });

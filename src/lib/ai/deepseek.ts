@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { ANALYSIS_SYSTEM_PROMPT } from "@/lib/analysis/prompts";
-import { modelReportSchema, type ModelReport } from "@/lib/analysis/schema";
+import { modelReportSchema, receiptStructuredSchema, type ModelReport } from "@/lib/analysis/schema";
 
 const CHAT_COMPLETIONS_URL = "https://api.deepseek.com/chat/completions";
 const REQUEST_TIMEOUT_MS = 45_000;
@@ -8,13 +8,14 @@ const ocrSchema = z.object({
   text: z.string().max(15_000),
   uncertainParts: z.array(z.string().max(200)).max(20),
   notes: z.array(z.string().max(200)).max(8),
+  structuredData: receiptStructuredSchema.optional(),
 });
-const OCR_SYSTEM_PROMPT = `Bạn là công cụ OCR tiếng Việt. Chỉ đọc chữ nhìn thấy trong ảnh đã được người dùng che dữ liệu riêng tư; không suy đoán chữ mờ, bị che hoặc bị cắt. Ghi phần đọc không chắc trong uncertainParts. Không kết luận ảnh thật/giả hoặc giao dịch thành công.
+const OCR_SYSTEM_PROMPT = `Bạn là công cụ OCR tiếng Việt. Chỉ đọc chữ nhìn thấy trong ảnh đã được người dùng che dữ liệu riêng tư; không suy đoán chữ mờ, bị che hoặc bị cắt. Ghi phần đọc không chắc trong uncertainParts. Không kết luận ảnh thật/giả hoặc giao dịch thành công. Nếu ảnh có bố cục biên lai, trích xuất thêm structuredData; chỉ điền trường đọc được, không tự bổ sung thông tin vắng mặt. Mọi inconsistencies chỉ là nghi vấn để người dùng kiểm tra.
 
 Chỉ trả về một JSON object hợp lệ theo đúng ví dụ sau, không markdown và không thêm khóa:
-{"text":"Nội dung đọc được","uncertainParts":[],"notes":[]}
+{"text":"Nội dung đọc được","uncertainParts":[],"notes":[],"structuredData":{}}
 
-Tất cả ba khóa đều bắt buộc. text luôn là chuỗi (dùng chuỗi rỗng nếu không đọc được chữ); uncertainParts và notes luôn là mảng chuỗi (dùng mảng rỗng nếu không có). Nếu ảnh không đọc được, mô tả giới hạn trong notes; không tự điền nội dung không nhìn thấy.`;
+text, uncertainParts và notes luôn bắt buộc. structuredData là tùy chọn; nếu có, chỉ gồm trường nhận diện được, dùng transferType=unknown khi không rõ và inconsistencies là mảng nhận xét thận trọng. Nếu ảnh không đọc được, mô tả giới hạn trong notes; không tự điền nội dung không nhìn thấy.`;
 const completionSchema = z.object({
   choices: z.array(z.object({
     finish_reason: z.string().nullable().optional(),
@@ -42,6 +43,7 @@ function providerError(status: number): Error {
 async function requestCompletion(input: {
   messages: Array<Record<string, unknown>>;
   maxTokens: number;
+  model?: string;
 }): Promise<string> {
   const { apiKey, model } = configuredDeepSeek();
   const controller = new AbortController();
@@ -54,7 +56,7 @@ async function requestCompletion(input: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model,
+        model: input.model ?? model,
         messages: input.messages,
         max_tokens: input.maxTokens,
         response_format: { type: "json_object" },
@@ -97,17 +99,28 @@ export async function analyzeWithDeepSeek(prompt: string): Promise<ModelReport> 
     ],
     maxTokens: 3_200,
   });
-  const result = modelReportSchema.safeParse(parseJson(raw));
+  const result = modelReportSchema.safeParse(sanitizeModelReport(parseJson(raw)));
   if (!result.success) throw new Error("deepseek_invalid_schema");
   return result.data;
 }
 
+function sanitizeModelReport(value: unknown): unknown {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return value;
+  const report = value as Record<string, unknown>;
+  const truncate = (item: unknown, max: number) => typeof item === "string" && item.length > max ? `${item.slice(0, max - 1).trimEnd()}…` : item;
+  return {
+    ...report,
+    summary: truncate(report.summary, 1_500),
+    checklist: Array.isArray(report.checklist) ? report.checklist.slice(0, 15).map((item) => truncate(item, 350)) : report.checklist,
+    limitations: Array.isArray(report.limitations) ? report.limitations.slice(0, 15).map((item) => truncate(item, 350)) : report.limitations,
+  };
+}
+
 export async function readImage(image: Buffer, mimeType: ImageMime) {
-  const { model } = configuredDeepSeek();
-  if (!["deepseek-flash", "deepseek-v4-flash", "deepseek-v4-flash-vision-exp"].includes(model)) {
-    throw new Error("deepseek_vision_model_unsupported");
-  }
+  const { model: textModel } = configuredDeepSeek();
+  const model = process.env.DEEPSEEK_VISION_MODEL?.trim() || textModel;
   const raw = await requestCompletion({
+    model,
     messages: [
       {
         role: "system",

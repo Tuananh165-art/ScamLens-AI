@@ -20,12 +20,28 @@ export const findingSchema = z.object({
 });
 
 export const modelReportSchema = z.object({
-  summary: z.string().trim().min(3).max(600),
+  summary: z.string().trim().min(3).max(1_500),
   riskLevel: riskLevelSchema,
   findings: z.array(findingSchema).max(12),
-  checklist: z.array(z.string().trim().min(5).max(220)).max(8),
-  limitations: z.array(z.string().trim().min(5).max(200)).max(8),
+  checklist: z.array(z.string().trim().min(3).max(350)).max(15),
+  limitations: z.array(z.string().trim().min(3).max(350)).max(15),
 });
+
+export const receiptStructuredSchema = z.object({
+  bankName: z.string().trim().max(120).optional(),
+  amount: z.number().int().nonnegative().optional(),
+  amountInWords: z.string().trim().max(300).optional(),
+  senderName: z.string().trim().max(160).optional(),
+  senderAccount: z.string().trim().max(80).optional(),
+  recipientName: z.string().trim().max(160).optional(),
+  recipientAccount: z.string().trim().max(80).optional(),
+  recipientBank: z.string().trim().max(120).optional(),
+  transactionTime: z.string().trim().max(120).optional(),
+  referenceNumber: z.string().trim().max(120).optional(),
+  transferType: z.enum(["napas247", "normal", "unknown"]).default("unknown"),
+  inconsistencies: z.array(z.string().trim().min(1).max(250)).max(12).default([]),
+});
+export type ReceiptStructuredData = z.infer<typeof receiptStructuredSchema>;
 
 export const analyzeRequestSchema = z.object({
   type: sourceTypeSchema,
