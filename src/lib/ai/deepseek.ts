@@ -4,11 +4,10 @@ import { modelReportSchema, receiptStructuredSchema, type ModelReport } from "@/
 
 const CHAT_COMPLETIONS_URL = "https://api.deepseek.com/chat/completions";
 const REQUEST_TIMEOUT_MS = 45_000;
-const ocrSchema = z.object({
+const ocrTextSchema = z.object({
   text: z.string().max(15_000),
-  uncertainParts: z.array(z.string().max(200)).max(20),
-  notes: z.array(z.string().max(200)).max(8),
-  structuredData: receiptStructuredSchema.optional(),
+  uncertainParts: z.array(z.string().max(200)).max(20).optional().default([]),
+  notes: z.array(z.string().max(200)).max(8).optional().default([]),
 });
 const OCR_SYSTEM_PROMPT = `Bạn là công cụ OCR tiếng Việt. Chỉ đọc chữ nhìn thấy trong ảnh đã được người dùng che dữ liệu riêng tư; không suy đoán chữ mờ, bị che hoặc bị cắt. Ghi phần đọc không chắc trong uncertainParts. Không kết luận ảnh thật/giả hoặc giao dịch thành công. Nếu ảnh có bố cục biên lai, trích xuất thêm structuredData; chỉ điền trường đọc được, không tự bổ sung thông tin vắng mặt. Mọi inconsistencies chỉ là nghi vấn để người dùng kiểm tra.
 
@@ -139,7 +138,105 @@ export async function readImage(image: Buffer, mimeType: ImageMime) {
     ],
     maxTokens: 1_200,
   });
-  const result = ocrSchema.safeParse(parseJson(raw));
+  const parsed = parseJson(raw);
+  const result = ocrTextSchema.safeParse(sanitizeOcrText(parsed));
   if (!result.success) throw new Error("deepseek_invalid_schema");
-  return { ...result.data, model };
+
+  const structuredData = parseOcrStructuredData(parsed);
+  const structuredDataNote = "Một số trường thông tin giao dịch chưa đọc được rõ; vui lòng kiểm tra lại ảnh.";
+  const notes = structuredData.invalid && !result.data.notes.includes(structuredDataNote)
+    ? [...result.data.notes.slice(0, 7), structuredDataNote]
+    : result.data.notes;
+
+  return {
+    ...result.data,
+    notes,
+    ...(structuredData.data ? { structuredData: structuredData.data } : {}),
+    model,
+  };
+}
+
+const receiptStringFields = [
+  "bankName", "amountInWords", "senderName", "senderAccount", "recipientName",
+  "recipientAccount", "recipientBank", "transactionTime", "referenceNumber",
+] as const;
+
+function sanitizeOcrText(value: unknown): unknown {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return value;
+  const output = value as Record<string, unknown>;
+  const cleanList = (item: unknown, maxItems: number, maxLength: number) =>
+    Array.isArray(item)
+      ? item.filter((entry): entry is string => typeof entry === "string").slice(0, maxItems).map((entry) => entry.slice(0, maxLength))
+      : [];
+  return {
+    ...output,
+    text: typeof output.text === "string" ? output.text.slice(0, 15_000) : output.text,
+    uncertainParts: cleanList(output.uncertainParts, 20, 200),
+    notes: cleanList(output.notes, 8, 200),
+  };
+}
+
+function parseOcrStructuredData(value: unknown): { data?: z.infer<typeof receiptStructuredSchema>; invalid: boolean } {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return { invalid: false };
+  const raw = (value as Record<string, unknown>).structuredData;
+  if (raw === undefined || raw === null) return { invalid: false };
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return { invalid: true };
+
+  const source = raw as Record<string, unknown>;
+  const candidate: Record<string, unknown> = {};
+  const stringFieldLimits: Record<(typeof receiptStringFields)[number], number> = {
+    bankName: 120,
+    amountInWords: 300,
+    senderName: 160,
+    senderAccount: 80,
+    recipientName: 160,
+    recipientAccount: 80,
+    recipientBank: 120,
+    transactionTime: 120,
+    referenceNumber: 120,
+  };
+  let invalid = false;
+
+  for (const key of receiptStringFields) {
+    const field = source[key];
+    if (field === undefined || field === null || field === "") continue;
+    if (typeof field === "string" && field.length <= stringFieldLimits[key]) candidate[key] = field;
+    else if (typeof field === "string") invalid = true;
+    else invalid = true;
+  }
+
+  const amount = source.amount;
+  if (typeof amount === "number" && Number.isSafeInteger(amount) && amount >= 0) {
+    candidate.amount = amount;
+  } else if (typeof amount === "string") {
+    // Accept only plain digits or Vietnamese-style thousands separators; do not guess decimal values.
+    const amountText = amount.trim().replace(/\s*(?:₫|VND)\s*$/i, "").trim();
+    const isGroupedInteger = /^\d{1,3}([., ])(\d{3})(?:\1\d{3})*$/.test(amountText);
+    const normalized = amountText.replace(/[.,\s]/g, "");
+    if ((/^\d{1,15}$/.test(amountText) || isGroupedInteger) && Number.isSafeInteger(Number(normalized))) candidate.amount = Number(normalized);
+    else if (amount.trim()) invalid = true;
+  } else if (amount !== undefined && amount !== null) {
+    invalid = true;
+  }
+
+  if (source.transferType === "napas247" || source.transferType === "normal" || source.transferType === "unknown") {
+    candidate.transferType = source.transferType;
+  } else if (source.transferType !== undefined && source.transferType !== null && source.transferType !== "") {
+    candidate.transferType = "unknown";
+    invalid = true;
+  }
+
+  if (Array.isArray(source.inconsistencies)) {
+    const inconsistencies = source.inconsistencies
+      .filter((item): item is string => typeof item === "string" && item.trim().length > 0)
+      .slice(0, 12)
+      .map((item) => item.slice(0, 250));
+    candidate.inconsistencies = inconsistencies;
+    if (inconsistencies.length !== source.inconsistencies.length) invalid = true;
+  } else if (source.inconsistencies !== undefined && source.inconsistencies !== null) {
+    invalid = true;
+  }
+
+  const result = receiptStructuredSchema.safeParse(candidate);
+  return result.success ? { data: result.data, invalid } : { invalid: true };
 }
