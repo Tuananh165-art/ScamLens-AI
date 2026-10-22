@@ -119,6 +119,12 @@ test("theme toggle persists across app pages", async ({ page }) => {
   await expect.poll(() => page.locator("body").evaluate((element) => getComputedStyle(element).backgroundColor)).not.toBe(lightBackground);
   await page.goto("/guide");
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  await expect(page.locator(".guide-topline").getByRole("button", { name: "Điều chỉnh cỡ chữ" })).toBeVisible();
+  await page.locator(".guide-topline").getByRole("button", { name: "Điều chỉnh cỡ chữ" }).click();
+  await page.getByRole("button", { name: "Tăng cỡ chữ" }).click();
+  await expect(page.locator("html")).toHaveAttribute("data-text-size", "large");
+  await page.goto("/history");
+  await expect(page.locator(".history-topline").getByRole("button", { name: "Điều chỉnh cỡ chữ" })).toBeVisible();
   await page.getByRole("button", { name: "Chuyển sang giao diện sáng" }).click();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
   await page.setViewportSize({ width: 390, height: 844 });
@@ -136,4 +142,72 @@ test("theme toggle persists across app pages", async ({ page }) => {
     return text && size < 12 ? [{ tag: element.tagName, className: typeof element.className === "string" ? element.className : "", size, text: text.slice(0, 45) }] : [];
   }));
   expect(undersizedText).toEqual([]);
+});
+
+test("text size controls work at mobile width, persist, and keep the layout inside the viewport", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  const mobileNav = page.getByRole("navigation", { name: "Điều hướng nhanh" });
+  const control = mobileNav.getByRole("button", { name: "Điều chỉnh cỡ chữ" });
+  await control.click();
+  const body = page.locator("body");
+  const defaultSize = await body.evaluate((element) => Number.parseFloat(getComputedStyle(element).fontSize));
+  await page.getByRole("button", { name: "Tăng cỡ chữ" }).click();
+  await expect(page.locator("html")).toHaveAttribute("data-text-size", "large");
+  const largeSize = await body.evaluate((element) => Number.parseFloat(getComputedStyle(element).fontSize));
+  expect(largeSize).toBeGreaterThan(defaultSize);
+  await expect(page.getByLabel("Nội dung tin nhắn")).toBeVisible();
+  const tabBox = await page.getByRole("tablist").boundingBox();
+  const navBox = await mobileNav.boundingBox();
+  const tabBottom = tabBox ? tabBox.y + tabBox.height : Number.POSITIVE_INFINITY;
+  const navTop = navBox?.y ?? 0;
+  expect(tabBottom).toBeLessThan(navTop);
+  await page.setViewportSize({ width: 320, height: 740 });
+  const widths = await page.evaluate(() => ({ viewport: document.documentElement.clientWidth, content: document.documentElement.scrollWidth }));
+  expect(widths.content).toBeLessThanOrEqual(widths.viewport);
+  const undersizedText = await page.locator("body *").evaluateAll((elements) => elements.flatMap((element) => {
+    const text = element.textContent?.trim();
+    const fontSize = Number.parseFloat(getComputedStyle(element).fontSize);
+    return text && fontSize < 12 ? [{ className: typeof element.className === "string" ? element.className : "", fontSize, text: text.slice(0, 40) }] : [];
+  }));
+  expect(undersizedText).toEqual([]);
+  await page.reload();
+  await expect(page.locator("html")).toHaveAttribute("data-text-size", "large");
+  await mobileNav.getByRole("button", { name: "Điều chỉnh cỡ chữ" }).click();
+  await page.getByRole("button", { name: "Giảm cỡ chữ" }).click();
+  await expect(page.locator("html")).toHaveAttribute("data-text-size", "default");
+  await page.getByRole("button", { name: "Giảm cỡ chữ" }).click();
+  await expect(page.locator("html")).toHaveAttribute("data-text-size", "small");
+  const smallMobileSize = await body.evaluate((element) => Number.parseFloat(getComputedStyle(element).fontSize));
+  expect(smallMobileSize).toBeLessThan(defaultSize);
+  const smallText = await page.locator("body *").evaluateAll((elements) => elements.flatMap((element) => {
+    const text = element.textContent?.trim();
+    const fontSize = Number.parseFloat(getComputedStyle(element).fontSize);
+    return text && fontSize < 12 ? [{ className: typeof element.className === "string" ? element.className : "", fontSize, text: text.slice(0, 40) }] : [];
+  }));
+  expect(smallText).toEqual([]);
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  const desktopScale = await page.locator(".hero-lede").evaluate((element) => Number.parseFloat(getComputedStyle(element).fontSize));
+  await page.locator(".account-area").getByRole("button", { name: "Điều chỉnh cỡ chữ" }).click();
+  await page.getByRole("button", { name: "Tăng cỡ chữ" }).click();
+  await page.getByRole("button", { name: "Tăng cỡ chữ" }).click();
+  const largeDesktopScale = await page.locator(".hero-lede").evaluate((element) => Number.parseFloat(getComputedStyle(element).fontSize));
+  expect(largeDesktopScale).toBeGreaterThan(desktopScale);
+  for (const width of [320, 360, 390, 768, 900, 1024, 1280, 1440]) {
+    await page.setViewportSize({ width, height: 844 });
+    const layout = await page.evaluate(() => {
+      const tabs = document.querySelector(".type-tabs")?.getBoundingClientRect();
+      const nav = document.querySelector(".mobile-bottom-bar");
+      const navRect = nav?.getBoundingClientRect();
+      return {
+        viewport: document.documentElement.clientWidth,
+        content: document.documentElement.scrollWidth,
+        tabsVisible: Boolean(tabs && tabs.width > 0),
+        tabsAboveNav: !nav || getComputedStyle(nav).display === "none" || !tabs || !navRect || tabs.bottom <= navRect.top,
+      };
+    });
+    expect(layout.content, `horizontal overflow at ${width}px`).toBeLessThanOrEqual(layout.viewport);
+    if (width <= 650) expect(layout.tabsAboveNav, `input tabs hidden by bottom navigation at ${width}px`).toBe(true);
+    expect(layout.tabsVisible, `input tabs hidden at ${width}px`).toBe(true);
+  }
 });

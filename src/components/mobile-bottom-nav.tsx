@@ -4,6 +4,7 @@ import Link from "next/link";
 import { BookOpenText, Clock3, Shield } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { TextSizeControl } from "@/components/text-size-control";
 
 const destinations = [
   { href: "/#analyze", path: "/", label: "Soi rọi", icon: Shield },
@@ -18,6 +19,7 @@ export function MobileBottomNav() {
     {destinations.map(({ href, path, label, icon: Icon }) => <Link className={`bottom-bar-item${pathname === path ? " active" : ""}`} href={href} key={path} aria-current={pathname === path ? "page" : undefined}>
       <Icon size={18} /><span>{label}</span>
     </Link>)}
+    <TextSizeControl compact />
     <ThemeToggle compact />
   </nav>;
 }

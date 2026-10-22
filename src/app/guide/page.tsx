@@ -1,10 +1,11 @@
 import { ArrowLeft, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { TextSizeControl } from "@/components/text-size-control";
 
 export default function GuidePage() {
   return <main className="guide-shell">
-    <div className="guide-topline"><Link className="back-link" href="/"><ArrowLeft size={14} /> Quay lại trang phân tích</Link><ThemeToggle /></div>
+    <div className="guide-topline"><Link className="back-link" href="/"><ArrowLeft size={14} /> Quay lại trang phân tích</Link><div className="display-controls"><TextSizeControl /><ThemeToggle /></div></div>
     <header className="guide-hero"><div className="section-kicker">SCAMLENS AI · HƯỚNG DẪN</div><h1>Bình tĩnh trước khi làm theo.</h1><p>ScamLens giúp bạn đọc lại nội dung đáng ngờ, nhận ra dấu hiệu và quyết định bước kiểm tra tiếp theo. Một cảnh báo là lý do để tự xác minh; nó không thay thế xác nhận từ ngân hàng hay cơ quan chức năng.</p></header>
     <section className="guide-section"><h2>1. Gửi nội dung cần kiểm tra</h2><ul><li>Dán tin nhắn, nội dung email, hoặc đường dẫn vào đúng tab. Phần email chỉ nhận nội dung bạn tự dán, không đọc hộp thư.</li><li>Với ảnh, dùng công cụ che kín số tài khoản, mã QR, OTP và thông tin cá nhân. AI sẽ nhận diện chữ trong ảnh đã che.</li><li>Đối chiếu và sửa phần chữ AI nhận diện. ScamLens chỉ phân tích sau khi bạn xác nhận bản đọc.</li><li>Điền ngữ cảnh vừa đủ; bỏ tên thật và thông tin không cần thiết.</li></ul></section>
     <section className="guide-section"><h2>2. Đọc kết quả và bằng chứng</h2><ul><li>Mở từng cảnh báo và so sánh trích dẫn với nội dung bạn đã gửi.</li><li><b>Rủi ro cao</b> nghĩa là có tín hiệu nghiêm trọng trong nội dung; không xác nhận danh tính người gửi hoặc kết quả điều tra.</li><li><b>Chưa thấy dấu hiệu rõ</b> chỉ nói về nội dung được cung cấp, không chứng minh website hay người gửi an toàn.</li><li><b>Chưa đủ thông tin</b> nghĩa là dữ liệu không đủ để đưa ra đánh giá hữu ích.</li><li>URL chỉ được kiểm tra cấu trúc văn bản. Ứng dụng không mở trang hoặc tra cứu độ uy tín.</li></ul></section>

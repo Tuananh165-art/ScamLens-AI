@@ -14,5 +14,5 @@ export const metadata: Metadata = {
 export const viewport: Viewport = { themeColor: "#f7f8fc", width: "device-width", initialScale: 1 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="vi" suppressHydrationWarning><body><Script id="theme-bootstrap" strategy="beforeInteractive">{`try{var s=localStorage.getItem("scamlens-theme");var t=s==="dark"||s==="light"?s:(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");document.documentElement.dataset.theme=t}catch(e){}`}</Script>{children}<MobileBottomNav /></body></html>;
+  return <html lang="vi" suppressHydrationWarning><body><Script id="theme-bootstrap" strategy="beforeInteractive">{`try{var s=localStorage.getItem("scamlens-theme");var t=s==="dark"||s==="light"?s:(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");document.documentElement.dataset.theme=t;var z=localStorage.getItem("scamlens-text-size");document.documentElement.dataset.textSize=z==="small"||z==="large"?z:"default"}catch(e){}`}</Script>{children}<MobileBottomNav /></body></html>;
 }

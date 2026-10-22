@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { ImageRedactor } from "@/components/image-redactor";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { TextSizeControl } from "@/components/text-size-control";
 import { LogoutButton } from "@/components/logout-button";
 import { countSensitiveMatches, redactSensitiveText } from "@/lib/analysis/redact";
 import { demoCaseStudies } from "@/lib/analysis/case-studies";
@@ -190,20 +191,20 @@ export function HomeApp({ signedIn, email, avatarUrl, authConfigured, authError 
     <header className="topbar">
       <Link href="/" className="brand" aria-label="ScamLens AI trang chủ"><span className="brand-mark"><Shield size={20} strokeWidth={2.1} /><span className="brand-spark"><Sparkles size={10} /></span></span><span className="brand-word">scamlens<span>.</span><small>AI</small></span></Link>
       <nav className="top-nav" aria-label="Điều hướng chính"><Link className="nav-active" href="/#analyze">Phân tích</Link><Link href="/guide">Cách tự bảo vệ</Link><Link href="/guide#privacy">Quyền riêng tư</Link></nav>
-      <div className="account-area"><ThemeToggle />{signedIn ? <><Link className="account-link" href="/history"><Clock3 size={15} /> Lịch sử</Link><span className="account-email" title={email ?? undefined}>{email ?? "Đã đăng nhập"}</span><span className="user-avatar" title={`Đang đăng nhập: ${email ?? "tài khoản Google"}`} aria-label={`Tài khoản ${email ?? "Google"}`}>{avatarUrl ? <Image src={avatarUrl} alt="" width={32} height={32} unoptimized referrerPolicy="no-referrer" /> : email?.[0]?.toUpperCase() ?? "U"}</span><LogoutButton /></> : authConfigured ? <a href="/auth/login" className="sign-in"><span className="google-g">G</span> Đăng nhập <ArrowUpRight size={14} /></a> : <span className="setup-state"><span /> Cấu hình đăng nhập sau</span>}</div>
+      <div className="account-area"><TextSizeControl /><ThemeToggle />{signedIn ? <><Link className="account-link" href="/history"><Clock3 size={15} /> Lịch sử</Link><span className="account-email" title={email ?? undefined}>{email ?? "Đã đăng nhập"}</span><span className="user-avatar" title={`Đang đăng nhập: ${email ?? "tài khoản Google"}`} aria-label={`Tài khoản ${email ?? "Google"}`}>{avatarUrl ? <Image src={avatarUrl} alt="" width={32} height={32} unoptimized referrerPolicy="no-referrer" /> : email?.[0]?.toUpperCase() ?? "U"}</span><LogoutButton /></> : authConfigured ? <a href="/auth/login" className="sign-in"><span className="google-g">G</span> Đăng nhập <ArrowUpRight size={14} /></a> : <span className="setup-state"><span /> Cấu hình đăng nhập sau</span>}</div>
     </header>
     {authError && <p className="feedback feedback-error" role="alert">Chưa hoàn tất đăng nhập Google. Hãy bắt đầu đăng nhập lại trên cùng domain. Nếu vẫn lỗi, kiểm tra URL callback trong cấu hình Supabase.</p>}
 
     <section className="hero" id="analyze">
-      <div className="hero-copy"><div className="eyebrow"><span className="eyebrow-dot live-radar-dot" /> TRỢ LÝ AN TOÀN SỐ · TIẾNG VIỆT</div><h1>Tin nhắn này có<br /><span>đáng tin không?</span></h1><p className="hero-lede">Phát hiện dấu hiệu đáng ngờ, giải thích bằng chứng và giúp bạn tự kiểm chứng — trước khi làm theo.</p><div className="trust-points"><span><ShieldCheck size={16} /> Trích dẫn có thể đối chiếu</span><span><LockKeyhole size={15} /> Rà soát dữ liệu trước khi gửi</span><span><Fingerprint size={15} /> Không lưu nếu bạn không chọn</span></div></div>
-      <div className="hero-threat-terminal" aria-label="Các dấu hiệu ScamLens có thể kiểm tra"><div className="terminal-heading"><span className="status-ping" /> SCAMLENS · BẢNG QUÉT DẤU HIỆU <span className="terminal-local">CỤC BỘ</span></div><div className="radar-screen"><div className="radar-grid" /><div className="radar-sweep" /><span className="radar-crosshair crosshair-one" /><span className="radar-crosshair crosshair-two" /><span className="radar-center"><ShieldCheck size={22} /></span></div><ul className="terminal-signals"><li><span className="signal-marker marker-amber" /> Ép thời gian <small>cảm biến cục bộ</small></li><li><span className="signal-marker marker-red" /> Mạo danh tổ chức <small>cần tự xác minh</small></li><li><span className="signal-marker marker-blue" /> Link chuyển hướng <small>không mở tự động</small></li></ul><div className="terminal-footer">Không phải luồng dữ liệu trực tiếp hoặc thống kê vụ việc.</div></div>
+      <div className="hero-copy"><div className="eyebrow"><span className="eyebrow-dot live-radar-dot" /> TRỢ LÝ AN TOÀN SỐ</div><h1>Tin nhắn này có<br /><span>đáng tin không?</span></h1><p className="hero-lede">Xem dấu hiệu đáng ngờ và cách tự kiểm tra trước khi làm theo.</p></div>
+      <div className="hero-threat-terminal quick-start" aria-label="Ba bước kiểm tra"><h2>Bắt đầu trong 3 bước</h2><ol><li><span>1</span><p><strong>Chọn loại nội dung</strong><small>Tin nhắn, email, ảnh hoặc đường dẫn</small></p></li><li><span>2</span><p><strong>Rà soát thông tin</strong><small>Che dữ liệu riêng tư trước khi gửi</small></p></li><li><span>3</span><p><strong>Đọc bằng chứng</strong><small>Tự xác minh qua kênh chính thức</small></p></li></ol></div>
     </section>
 
     <section className="workspace" aria-label="Công cụ phân tích">
       <div className="workspace-heading"><div><div className="section-kicker">BẮT ĐẦU KIỂM TRA</div><h2>Bạn nhận được điều gì đáng ngờ?</h2></div><div className="demo-picker"><label className="sr-only" htmlFor="demo-case-select">Chọn tình huống minh họa</label><select id="demo-case-select" value={demoCaseId} onChange={(event) => setDemoCaseId(event.target.value)}>{demoCaseStudies.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</select><button className="demo-button" type="button" onClick={loadDemo}><Sparkles size={15} /> Nạp tình huống <ArrowRight size={14} /></button></div></div>
       <div className="analysis-grid">
         <section className="input-panel">
-          <div className="panel-label-row"><span className="panel-label"><span className="step-number">01</span> Chọn loại nội dung</span><span className="step-muted">Bạn có thể thử mà không cần tài khoản</span></div>
+          <div className="panel-label-row"><span className="panel-label"><span className="step-number">01</span> Chọn nội dung cần kiểm tra</span></div>
           <div className="type-tabs" role="tablist" aria-label="Loại dữ liệu cần phân tích">{types.map(({ id, label, icon: Icon }) => <button key={id} role="tab" aria-selected={type === id} className={`type-tab ${type === id ? "selected" : ""}`} type="button" onClick={() => switchType(id)}><Icon size={16} strokeWidth={1.8} /><span>{label}</span></button>)}</div>
 
           {type === "image" ? <div className="input-fields image-fields">
@@ -243,12 +244,10 @@ export function HomeApp({ signedIn, email, avatarUrl, authConfigured, authError 
 
     {report && <ReportView report={report} signedIn={signedIn} busy={busy} onSave={saveReport} onCopy={copyReport} copied={copied} />}
 
-    <section className="how-section"><div className="section-kicker">ĐƯỢC THIẾT KẾ ĐỂ GIÚP BẠN BÌNH TĨNH</div><h2>Hiểu dấu hiệu. <span>Tự kiểm chứng.</span></h2><div className="steps-row"><Step number="01" title="Chia sẻ nội dung" detail="Dán tin nhắn hoặc email, nhập đường dẫn hay tải ảnh đã che." icon={<Upload size={18} />} /><div className="step-connector"><ArrowRight size={15} /></div><Step number="02" title="Xem bằng chứng" detail="Đọc từng dấu hiệu, trích dẫn gốc và phần chưa thể xác minh." icon={<CircleHelp size={18} />} /><div className="step-connector"><ArrowRight size={15} /></div><Step number="03" title="Kiểm tra độc lập" detail="Tạm dừng và tự liên hệ tổ chức qua ứng dụng chính thức." icon={<ShieldCheck size={18} />} /></div></section>
+
     <footer className="footer"><Link href="/" className="brand footer-brand"><span className="brand-mark"><Shield size={16} /></span><span className="brand-word">scamlens<span>.</span><small>AI</small></span></Link><span>Thận trọng với liên kết và yêu cầu chuyển tiền.</span><nav><Link href="/guide">Hướng dẫn</Link><Link href="/guide#privacy">Quyền riêng tư</Link><span>© 2026 ScamLens AI</span></nav></footer>
   </main>;
 }
-
-function Step({ number, title, detail, icon }: { number: string; title: string; detail: string; icon: React.ReactNode }) { return <article className="step-card"><span className="step-card-icon">{icon}</span><span className="step-card-number">{number}</span><h3>{title}</h3><p>{detail}</p></article>; }
 
 function ReportView({ report, signedIn, busy, onSave, onCopy, copied }: { report: AnalysisReport; signedIn: boolean; busy: boolean; onSave(): void; onCopy(): void; copied: boolean }) {
   const [expandedLimitations, setExpandedLimitations] = useState(false);

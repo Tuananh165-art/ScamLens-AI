@@ -49,6 +49,16 @@ Cập nhật: 22/10/2026
 - [x] Chụp/kiểm tra trực quan production local ở desktop và mobile; không thay thế thử trên iOS/Android thật.
 - [ ] Chủ dự án thao tác thủ công: kiểm thử OAuth/RLS bằng hai tài khoản, xác nhận nội dung OCR trên ảnh đầu vào thực tế của người dùng, và nghiệm thu mobile/accessibility trên thiết bị.
 
+## Cập nhật UI/UX cỡ chữ và luồng cho người mới — 22/10/2026
+
+- Thêm bộ điều chỉnh cỡ chữ **Nhỏ / Mặc định / Lớn** trên trang phân tích, hướng dẫn và lịch sử ở desktop; thanh điều hướng mobile có cùng điều khiển. Mặc định lớn hơn bản cũ; lựa chọn được lưu trong `localStorage` và khôi phục trước khi trang hiển thị.
+- Các cỡ chữ trong stylesheet dùng chung thang đo, vẫn giữ thứ bậc tiêu đề/nội dung và tự xuống dòng theo bố cục. Mức nhỏ không đưa chữ mobile xuống dưới 12 px.
+- Rút gọn phần mở đầu; thay radar trang trí bằng ba bước hướng dẫn rõ ràng trên desktop; bỏ đoạn hướng dẫn lặp phía dưới; ẩn thẻ hướng dẫn trên mobile để vùng nhập xuất hiện sớm hơn.
+- Header mobile giữ logo và đăng nhập trên một hàng. Thanh điều hướng có nút mở bảng tăng/giảm cỡ chữ.
+- E2E mới xác nhận tăng/giảm và khôi phục cỡ chữ, dùng được trên các trang desktop, lưu lựa chọn sau reload, chữ không dưới 12 px ở mobile, vùng tab không bị thanh đáy che và không tràn ngang ở 320 / 360 / 390 / 768 / 900 / 1024 / 1280 / 1440 px khi chọn cỡ chữ lớn.
+- Rà production bằng ảnh ở mobile 390 px, tablet 768 px và desktop 1440 px. Lượt rà đầu phát hiện tràn ngang 768 px và 1024 px ở chân bảng cảm biến; đã cho phần này xuống dòng, đồng thời chuyển bố cục cỡ chữ lớn tại tablet sang một cột. Lượt đo lại cả tám viewport đều không tràn.
+- Nghiệm thu trên điện thoại thật, VoiceOver/TalkBack và audit tương phản vẫn cần người dự án thao tác thủ công; Chromium giả lập không thay thế các kiểm tra đó.
+
 ## Kết quả theo yêu cầu
 
 | Yêu cầu | Kết quả |
@@ -72,7 +82,7 @@ Cập nhật: 22/10/2026
 - `npm.cmd run lint` — đạt.
 - `npm.cmd run typecheck` — đạt.
 - `npm.cmd run test` — 15 file, 60 test đạt; gồm regression OCR khi trường biên lai sai kiểu, bóc tách redirect nhiều lớp và đếm mẫu nhạy cảm.
-- `npm.cmd run test:e2e` — 10 test Chromium đạt, gồm consent, preview che dữ liệu, highlight report, checklist localStorage, luồng retry ảnh, theme/mobile overflow và menu đáy trên mobile.
+- `npm.cmd run test:e2e` — 11 test Chromium đạt, gồm consent, preview che dữ liệu, highlight report, checklist localStorage, luồng retry ảnh, theme, mobile overflow, menu đáy và điều chỉnh cỡ chữ desktop/mobile.
 - E2E xác nhận trên viewport 390 px: không tràn ngang và không có text DOM dưới 12 px.
 - `npm.cmd run build` — đạt; Next tạo đủ static pages và route.
 - `npm.cmd run smoke:ai` — DeepSeek text và image OCR đều trả JSON hợp lệ và qua schema sau sanitizer. Smoke gọi provider bằng nội dung mẫu và ảnh 1×1, dùng quota API.
