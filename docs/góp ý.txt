@@ -1,0 +1,24 @@
+Responsive Tablet gãy nghiêm trọng; Nhiều icon layout văng lung tung.
+Thiết kế vẫn có chút chưa thân thiện với người dùng lắm:
++ Header navbar bị lỗi layout rồi, các item nhảy nhiều quá.
++ Icon nên thống nhất 1 là chữ 2 là icon-only , đừng để cả 2, nếu, icon sáng tối thiết kế hình switch gạt ngang ấy.
++ Chức năng chỉnh font tương tác tuần tự, không phản hồi đúng, thiết kế xấu nha.
+
+
+1. Ở phương pháp nộp hình ảnh đối chiếu, có quá nhiều thao tác: Từ nạp hình ảnh (1) -> Che hình ảnh (2) -> Thao tác che ảnh , check confirm ở dưới (3 và 4) ->  click Tiếp tục với ảnh che (5) -> Lại click Đọc ảnh đã che bằng AI (6) -> Confirm nội dung và xác nhận bản ghi(HITL như tài liệu đã nói) (7 + 8) -> Lúc này nút quét mới unlock ra và ấn (9) -> Check thông tin (10)
+=> Quá nhiều step, không thể lược bỏ bất kỳ step nào, gây ức chế, và sắp xếp không hợp lý layout hiển thị từng nội dung.
+=> Đề xuất: Tinh gọn số bước cần làm (nên bổ sung chế độ quick review, bỏ qua step confirm HITL nếu cảm thấy ảnh đã quá rõ ràng và đơn giản). Nếu cần nên tái cấu trúc vị trí xuất hiện của các trường.
+
++ Mục Cảm biến nội dung cục bộ nên ẩn đi, khi có nội dung mà hệ thống detect mới cho nó pop ra.
+
++ Đề xuất tiếp: Sau khi AI phân tích xong, UI cần phản hồi động bằng cách autoscroll xuống nội dung đã được AI phân tích 
+
++ Ở mục Cách kiểm chứng an toàn, chưa hiểu mục này làm gì mà phải có radio box và task line gạch ngang khi check vào.
+
+2. Ở mục Email thì nội dung responsive hiển thị các label chưa ổn lắm
+
++ Quan trọng nhất: Bổ sung kiểu font chữ khác nhau cho từng nội dung, trang trí text cho bắt mắt hơn, bo góc ít lại, căn chỉnh nội dung text cho chuẩn chỉ hơn. 
++ Các trang khác cũng cần trang trí văn bản và bố trí hợp lý
++ Trang trí các mục dropdown , dùng ô dropdown mặc định hơi lmao
+
++ Về chức năng xuất file PDF, nếu có thời gian (hoặc đưa vào WIP đi) thì nên dùng AI hoặc tạo sẵn format văn bản để xuất được trang trí đàng hoặc format hoặc Word/PDF chứ cho PDF cap màn hình thì trông nó lỏ lắm.

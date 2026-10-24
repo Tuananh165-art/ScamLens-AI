@@ -73,8 +73,8 @@ Lệnh gửi hai yêu cầu tổng hợp ngắn tới DeepSeek: văn bản với
 2. Với email, nhập From/Reply-To nếu muốn. Các trường này là dữ kiện người dùng khai báo, không phải header đã xác minh từ hộp thư.
 3. Bấm **Xem trước nội dung đã che**.
 4. Sửa bản gửi. Bộ lọc tìm mẫu email, số điện thoại, chuỗi số dài và token có từ khóa; tên, mã tài khoản ngắn hoặc dữ kiện tùy ý có thể bị bỏ sót.
-5. Rà soát bản gửi trong mục **Xem nội dung sẽ gửi**. Khi bấm **Phân tích**, phần nội dung đã che sẽ được gửi đến nhà cung cấp AI.
-6. Đối chiếu từng trích dẫn với bản gốc và đọc giới hạn.
+5. Đánh dấu đã rà soát bản gửi; đánh dấu đồng ý gửi đến nhà cung cấp AI.
+6. Bấm **Phân tích**. Đối chiếu từng trích dẫn với bản gốc và đọc giới hạn.
 
 URL chỉ được parse cục bộ. App không tải trang, DNS, redirect hoặc ảnh preview.
 
@@ -84,7 +84,7 @@ URL chỉ được parse cục bộ. App không tải trang, DNS, redirect hoặ
 2. Kéo hình chữ nhật lên ảnh để che vùng. Dùng che kín số tài khoản, QR, OTP và tên không cần thiết.
 3. Bấm **Tiếp tục với ảnh đã che**, xem preview rồi bấm **Đọc ảnh đã che bằng DeepSeek**.
 4. Đối chiếu bản đọc với preview, sửa chữ/số chưa chính xác hoặc xóa dữ liệu còn sót.
-5. Xác nhận bản đọc. Khi bấm **Phân tích**, DeepSeek nhận phần chữ đã xác nhận để phân tích.
+5. Xác nhận bản đọc và đồng ý gửi; DeepSeek phân tích phần chữ đã xác nhận.
 6. Ảnh giao dịch không chứng minh tiền đã vào tài khoản. Mở ứng dụng ngân hàng của chính bạn để kiểm tra.
 
 Trình duyệt re-encode ảnh thành JPEG trước khi upload; metadata gốc bị bỏ. Vùng đã tô kín nằm trong ảnh gửi đi. Nếu che nhầm, chọn lại ảnh nguồn và che lại.
