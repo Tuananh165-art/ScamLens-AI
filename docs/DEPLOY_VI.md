@@ -62,7 +62,7 @@ Vercel Preview có origin khác nhau. Chỉ cho Preview đăng nhập nếu đã
 
 Mở `https://scam-lens-ai.vercel.app/api/health`; chỉ xác nhận biến cấu hình tồn tại, không xác minh provider thật. Sau đó:
 
-1. Mở app trong tab riêng tư và chạy một nội dung giả, đã đồng ý gửi.
+1. Mở app trong tab riêng tư và chạy một nội dung giả; nút **Phân tích** sẽ gửi nội dung đã che tới nhà cung cấp AI.
 2. Chạy một lượt ảnh giả, che dữ liệu trước khi đọc.
 3. Đăng nhập Google, lưu/mở/xóa lịch sử.
 4. Xác minh tab Network không thấy URL trang đáng ngờ được fetch.

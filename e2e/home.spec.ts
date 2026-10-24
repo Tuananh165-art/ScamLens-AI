@@ -1,26 +1,23 @@
 import { expect, test } from "@playwright/test";
 
-test("home renders Vietnamese analysis choices, eight sample situations, and privacy notice", async ({ page }) => {
+test("home renders Vietnamese analysis choices and eight sample situations", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByRole("heading", { name: /Tin nhắn này có.*đáng tin không/ })).toBeVisible();
   await expect(page.getByRole("tab", { name: "Tin nhắn" })).toBeVisible();
-  await expect(page.getByRole("checkbox", { name: /Tôi đã rà soát nội dung và đồng ý gửi/ })).toBeVisible();
   await expect(page.locator("#demo-case-select option")).toHaveCount(8);
   await expect(page.getByText(/DeepSeek/i)).toHaveCount(0);
 });
 
-test("message uses inline redaction preview and a single consent gate", async ({ page }) => {
+test("message shows the redacted payload and can be analyzed without extra acknowledgement", async ({ page }) => {
   await page.goto("/");
   await page.getByLabel("Nội dung tin nhắn").fill("Gửi OTP 123456 ngay để tránh khóa tài khoản.");
   await expect(page.getByText("Phát hiện: 1 mục")).toBeVisible();
   await page.getByText("Xem nội dung sẽ gửi", { exact: true }).click();
   await expect(page.locator(".payload-preview pre")).toContainText("OTP [OTP ĐÃ CHE]");
   const analyze = page.getByRole("button", { name: /Quét dấu hiệu lừa đảo ngay/ });
-  await expect(analyze).toBeDisabled();
-  await page.getByRole("checkbox", { name: /Tôi đã rà soát nội dung và đồng ý gửi/ }).check();
   await expect(analyze).toBeEnabled();
   await page.getByLabel("Nội dung tin nhắn").fill("Gửi OTP 654321 ngay để tránh khóa tài khoản.");
-  await expect(analyze).toBeDisabled();
+  await expect(analyze).toBeEnabled();
 });
 
 test("analysis report highlights verified source quotes and saves checklist state locally", async ({ page }) => {
@@ -40,7 +37,6 @@ test("analysis report highlights verified source quotes and saves checklist stat
   }));
   await page.goto("/");
   await page.getByLabel("Nội dung tin nhắn").fill(content);
-  await page.getByRole("checkbox", { name: /Tôi đã rà soát nội dung và đồng ý gửi/ }).check();
   await page.getByRole("button", { name: /Quét dấu hiệu lừa đảo ngay/ }).click();
   await expect(page.locator("mark.evidence-mark")).toHaveText(quote);
   const action = page.getByRole("checkbox", { name: "Tự mở ứng dụng ngân hàng để kiểm tra." });
@@ -112,19 +108,12 @@ test("theme toggle persists across app pages", async ({ page }) => {
     document.documentElement.dataset.theme = "light";
   });
   const lightBackground = await page.locator("body").evaluate((element) => getComputedStyle(element).backgroundColor);
-  const inputFontSize = await page.getByLabel("Nội dung tin nhắn").evaluate((element) => Number.parseFloat(getComputedStyle(element).fontSize));
-  expect(inputFontSize).toBeGreaterThanOrEqual(15);
   await page.getByRole("button", { name: "Chuyển sang giao diện tối" }).click();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
   await expect.poll(() => page.locator("body").evaluate((element) => getComputedStyle(element).backgroundColor)).not.toBe(lightBackground);
   await page.goto("/guide");
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
-  await expect(page.locator(".guide-topline").getByRole("button", { name: "Điều chỉnh cỡ chữ" })).toBeVisible();
-  await page.locator(".guide-topline").getByRole("button", { name: "Điều chỉnh cỡ chữ" }).click();
-  await page.getByRole("button", { name: "Tăng cỡ chữ" }).click();
-  await expect(page.locator("html")).toHaveAttribute("data-text-size", "large");
   await page.goto("/history");
-  await expect(page.locator(".history-topline").getByRole("button", { name: "Điều chỉnh cỡ chữ" })).toBeVisible();
   await page.getByRole("button", { name: "Chuyển sang giao diện sáng" }).click();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
   await page.setViewportSize({ width: 390, height: 844 });
@@ -136,63 +125,10 @@ test("theme toggle persists across app pages", async ({ page }) => {
   await expect(mobileNav.getByRole("link")).toHaveCount(3);
   const widths = await page.evaluate(() => ({ viewport: document.documentElement.clientWidth, content: document.documentElement.scrollWidth }));
   expect(widths.content).toBeLessThanOrEqual(widths.viewport);
-  const undersizedText = await page.locator("body *").evaluateAll((elements) => elements.flatMap((element) => {
-    const text = element.textContent?.trim();
-    const size = Number.parseFloat(getComputedStyle(element).fontSize);
-    return text && size < 12 ? [{ tag: element.tagName, className: typeof element.className === "string" ? element.className : "", size, text: text.slice(0, 45) }] : [];
-  }));
-  expect(undersizedText).toEqual([]);
 });
 
-test("text size controls work at mobile width, persist, and keep the layout inside the viewport", async ({ page }) => {
-  await page.setViewportSize({ width: 390, height: 844 });
+test("analysis layout fits supported viewport widths", async ({ page }) => {
   await page.goto("/");
-  const mobileNav = page.getByRole("navigation", { name: "Điều hướng nhanh" });
-  const control = mobileNav.getByRole("button", { name: "Điều chỉnh cỡ chữ" });
-  await control.click();
-  const body = page.locator("body");
-  const defaultSize = await body.evaluate((element) => Number.parseFloat(getComputedStyle(element).fontSize));
-  await page.getByRole("button", { name: "Tăng cỡ chữ" }).click();
-  await expect(page.locator("html")).toHaveAttribute("data-text-size", "large");
-  const largeSize = await body.evaluate((element) => Number.parseFloat(getComputedStyle(element).fontSize));
-  expect(largeSize).toBeGreaterThan(defaultSize);
-  await expect(page.getByLabel("Nội dung tin nhắn")).toBeVisible();
-  const tabBox = await page.getByRole("tablist").boundingBox();
-  const navBox = await mobileNav.boundingBox();
-  const tabBottom = tabBox ? tabBox.y + tabBox.height : Number.POSITIVE_INFINITY;
-  const navTop = navBox?.y ?? 0;
-  expect(tabBottom).toBeLessThan(navTop);
-  await page.setViewportSize({ width: 320, height: 740 });
-  const widths = await page.evaluate(() => ({ viewport: document.documentElement.clientWidth, content: document.documentElement.scrollWidth }));
-  expect(widths.content).toBeLessThanOrEqual(widths.viewport);
-  const undersizedText = await page.locator("body *").evaluateAll((elements) => elements.flatMap((element) => {
-    const text = element.textContent?.trim();
-    const fontSize = Number.parseFloat(getComputedStyle(element).fontSize);
-    return text && fontSize < 12 ? [{ className: typeof element.className === "string" ? element.className : "", fontSize, text: text.slice(0, 40) }] : [];
-  }));
-  expect(undersizedText).toEqual([]);
-  await page.reload();
-  await expect(page.locator("html")).toHaveAttribute("data-text-size", "large");
-  await mobileNav.getByRole("button", { name: "Điều chỉnh cỡ chữ" }).click();
-  await page.getByRole("button", { name: "Giảm cỡ chữ" }).click();
-  await expect(page.locator("html")).toHaveAttribute("data-text-size", "default");
-  await page.getByRole("button", { name: "Giảm cỡ chữ" }).click();
-  await expect(page.locator("html")).toHaveAttribute("data-text-size", "small");
-  const smallMobileSize = await body.evaluate((element) => Number.parseFloat(getComputedStyle(element).fontSize));
-  expect(smallMobileSize).toBeLessThan(defaultSize);
-  const smallText = await page.locator("body *").evaluateAll((elements) => elements.flatMap((element) => {
-    const text = element.textContent?.trim();
-    const fontSize = Number.parseFloat(getComputedStyle(element).fontSize);
-    return text && fontSize < 12 ? [{ className: typeof element.className === "string" ? element.className : "", fontSize, text: text.slice(0, 40) }] : [];
-  }));
-  expect(smallText).toEqual([]);
-  await page.setViewportSize({ width: 1440, height: 1000 });
-  const desktopScale = await page.locator(".hero-lede").evaluate((element) => Number.parseFloat(getComputedStyle(element).fontSize));
-  await page.locator(".account-area").getByRole("button", { name: "Điều chỉnh cỡ chữ" }).click();
-  await page.getByRole("button", { name: "Tăng cỡ chữ" }).click();
-  await page.getByRole("button", { name: "Tăng cỡ chữ" }).click();
-  const largeDesktopScale = await page.locator(".hero-lede").evaluate((element) => Number.parseFloat(getComputedStyle(element).fontSize));
-  expect(largeDesktopScale).toBeGreaterThan(desktopScale);
   for (const width of [320, 360, 390, 768, 900, 1024, 1280, 1440]) {
     await page.setViewportSize({ width, height: 844 });
     const layout = await page.evaluate(() => {

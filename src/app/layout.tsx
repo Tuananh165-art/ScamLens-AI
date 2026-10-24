@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
-import Script from "next/script";
 import { MobileBottomNav } from "@/components/mobile-bottom-nav";
+import { ThemeBootstrap } from "@/components/theme-bootstrap";
 import "./globals.css";
 import "./theme.css";
 
@@ -14,5 +14,5 @@ export const metadata: Metadata = {
 export const viewport: Viewport = { themeColor: "#f7f8fc", width: "device-width", initialScale: 1 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="vi" suppressHydrationWarning><body><Script id="theme-bootstrap" strategy="beforeInteractive">{`try{var s=localStorage.getItem("scamlens-theme");var t=s==="dark"||s==="light"?s:(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");document.documentElement.dataset.theme=t;var z=localStorage.getItem("scamlens-text-size");document.documentElement.dataset.textSize=z==="small"||z==="large"?z:"default"}catch(e){}`}</Script>{children}<MobileBottomNav /></body></html>;
+  return <html lang="vi" suppressHydrationWarning><body><ThemeBootstrap />{children}<MobileBottomNav /></body></html>;
 }

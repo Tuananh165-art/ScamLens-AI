@@ -26,7 +26,6 @@ export async function POST(request: Request) {
     const inputResult = analyzeRequestSchema.safeParse(inputValue);
     if (!inputResult.success) return privateJson({ error: "Nội dung chưa đúng định dạng hoặc vượt giới hạn." }, 400);
     const input = inputResult.data;
-    if (input.type === "image" && !input.confirmedOcr) return privateJson({ error: "Hãy xác nhận bản đọc chữ từ ảnh trước khi phân tích." }, 400);
 
     let hostname: string | undefined;
     const sourceId = randomUUID();
@@ -73,7 +72,7 @@ export async function POST(request: Request) {
       ...modelReport.limitations,
       "Ứng dụng không truy cập website hoặc xác minh người gửi/giao dịch bên ngoài.",
       input.type === "email" ? "Header kỹ thuật email chưa được kiểm chứng từ hộp thư nguồn." : "Kết quả chỉ phản ánh phần nội dung bạn đã cung cấp.",
-      input.type === "image" ? "Bản đọc ảnh đã được người dùng xác nhận; chưa xác minh tính thật của hình ảnh hay giao dịch." : "",
+      input.type === "image" ? (input.confirmedOcr ? "Bản đọc ảnh đã được người dùng xác nhận; chưa xác minh tính thật của hình ảnh hay giao dịch." : "Bản đọc do AI trích xuất và chưa được người dùng xác nhận; hãy đối chiếu trực tiếp với ảnh. Chưa xác minh tính thật của hình ảnh hay giao dịch.") : "",
       droppedUnverified ? "Đã ẩn dấu hiệu AI nêu ra nhưng không tìm thấy nguyên văn trong nguồn." : "",
     ].filter(Boolean))];
     const report = analysisReportSchema.parse({
