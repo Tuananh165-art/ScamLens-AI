@@ -16,7 +16,7 @@ const sufficiencyLabels = { usable: "Đủ nội dung để đánh giá", limite
 export function JevAssessmentCard({ assessment, confirmedOcr = true }: { assessment: JevAssessment; confirmedOcr?: boolean }) {
   if (assessment.status === "unavailable") {
     return <aside className="jev-assessment jev-assessment-unavailable" aria-label="Kết quả JEV">
-      <div className="result-card-heading"><span className="result-icon amber"><CircleHelp size={17} /></span><div><h3>JEV chưa hoàn tất lượt này</h3><p>{assessment.reason === "quota" ? "Đã chạm hạn mức gọi JEV trong ngày." : "Nhà cung cấp JEV tạm thời không sẵn sàng. Báo cáo từ DeepSeek và quy tắc vẫn được giữ nguyên."}</p></div></div>
+      <div className="result-card-heading"><span className="result-icon amber"><CircleHelp size={17} /></span><div><h3>JEV chưa hoàn tất lượt này</h3><p>{assessment.reason === "quota" ? "Đã chạm hạn mức gọi JEV trong ngày." : "Nhà cung cấp JEV tạm thời không sẵn sàng. Báo cáo phân tích chính và quy tắc vẫn được giữ nguyên."}</p></div></div>
     </aside>;
   }
 

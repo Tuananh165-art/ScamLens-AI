@@ -540,7 +540,7 @@ function ReportView({ ref, report, signedIn, busy, onSave, onCopy, copied }: { r
       </div>
       <div className="report-meta">
         <span>{new Date(report.createdAt).toLocaleString("vi-VN", { dateStyle: "medium", timeStyle: "short" })}</span>
-        <span>{report.model.text === "demo-rules" ? "Mô hình quy tắc" : report.jev?.status === "complete" ? "DeepSeek · đối chiếu JEV" : "Trí tuệ nhân tạo DeepSeek"}</span>
+        <span>{report.model.text === "demo-rules" ? "Mô hình quy tắc" : report.jev?.status === "complete" ? "AI chính · đối chiếu JEV" : "Phân tích bằng AI"}</span>
         <span>{report.source.confirmedOcr ? "Bản đọc ảnh OCR xác nhận" : "Nguồn trực tiếp"}</span>
       </div>
     </div>
