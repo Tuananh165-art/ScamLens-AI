@@ -1,0 +1,224 @@
+KỊCH BẢN DEMO SCAMLENS AI — TOÀN BỘ WEBSITE UI
+Phiên bản đối chiếu mã nguồn: 24/10/2026
+Mục đích: lời dẫn và thao tác demo chính xác theo UI hiện có trong repository.
+
+======================================================================
+0. ĐỌC TRƯỚC KHI DEMO
+======================================================================
+
+Thời lượng gợi ý: 15–20 phút nếu đi qua các loại nội dung; 8–10 phút nếu chỉ làm luồng tin nhắn và báo cáo.
+
+Điều kiện chọn chế độ:
+- Demo không gọi AI: đặt SCAMLENS_DEMO_MODE=true trong .env và khởi động lại server. API trả báo cáo quy tắc minh họa, giao diện ghi “Kết quả minh họa”. Không nói rằng AI đã phân tích.
+- Demo AI thật: SCAMLENS_DEMO_MODE=false, cấu hình DeepSeek phù hợp; OCR ảnh cần model/provider nhận ảnh. Mỗi lần gọi có thể tiêu quota và phụ thuộc mạng/dịch vụ. Không khẳng định dịch vụ live đang hoạt động nếu chưa kiểm tra tại phiên demo.
+- Dùng dữ liệu tổng hợp, không dùng email, tin nhắn, OTP, số tài khoản, ảnh biên lai hoặc thông tin cá nhân thật.
+- Mở trang tại URL của môi trường demo. Nếu dùng local theo README: http://localhost:3000.
+- Đăng nhập Google và Supabase phải được cấu hình mới trình diễn được lưu/mở lịch sử theo tài khoản.
+
+Lưu ý cần giữ trong lời dẫn:
+- ScamLens sàng lọc phần nội dung người dùng cung cấp; kết quả không xác minh danh tính, website, người gửi, giao dịch hoặc kết luận pháp lý.
+- “Chưa thấy dấu hiệu rõ” không có nghĩa là an toàn. “Rủi ro cao” cũng không phải bằng chứng người gửi phạm tội.
+- Không mở URL đáng ngờ. Phân tích URL là phân tích cấu trúc văn bản.
+- Không có phần trăm xác suất rủi ro trong báo cáo.
+
+======================================================================
+1. MỞ ĐẦU VÀ ORIENT UI (1–2 PHÚT)
+======================================================================
+
+Thao tác:
+1. Mở trang chủ, chỉ vào logo ScamLens AI, tiêu đề “Tin nhắn này có đáng tin không?” và mô tả ngắn.
+2. Chỉ vào thẻ “Bắt đầu trong 3 bước”: chọn loại nội dung, rà soát thông tin, đọc bằng chứng.
+3. Chỉ qua thanh điều hướng trên:
+   - “Phân tích” về khu vực nhập.
+   - “Cách tự bảo vệ” mở /guide.
+   - “Quyền riêng tư” mở mục tương ứng trên /guide.
+4. Bấm điều khiển giao diện sáng/tối một lần để minh họa; có thể đổi lại theo phòng demo.
+5. Nếu đang ở mobile, chỉ thanh điều hướng đáy: “Soi rọi”, “Tự vệ”, “Lịch sử”, và giao diện sáng/tối. “Lịch sử” cần đăng nhập/cấu hình Supabase để dùng đầy đủ.
+6. Nếu chưa đăng nhập, chỉ nút “Đăng nhập”. Nếu đã đăng nhập, chỉ email/avatar, “Lịch sử” và đăng xuất.
+
+Lời dẫn:
+“Đây là công cụ hỗ trợ đọc lại nội dung đáng ngờ. Mình sẽ cho thấy nó trích dẫn dấu hiệu nào và hướng dẫn kiểm tra độc lập; kết quả không thay việc gọi ngân hàng hoặc tổ chức qua kênh chính thức.”
+
+======================================================================
+2. LUỒNG TIN NHẮN: NHẬP, RÀ SOÁT, PHÂN TÍCH, ĐỌC BÁO CÁO (5–7 PHÚT)
+======================================================================
+
+A. Nạp tình huống mẫu đang có trên UI
+1. Tại “BẮT ĐẦU KIỂM TRA”, nhấn “Nạp tình huống”.
+2. UI hiện nạp tình huống tổng hợp giả lập về dịch vụ công/tên miền giả vào tab “Tin nhắn”. Phần nội dung có nhãn [TÌNH HUỐNG GIẢ LẬP].
+3. Đọc thông báo UI yêu cầu rà soát nội dung sẽ gửi.
+
+Lời dẫn:
+“Đây là tình huống minh họa tổng hợp, không phải hồ sơ vụ việc đã xác minh. Nút hiện tại nạp một tình huống mặc định; hiện không có danh sách chọn case.”
+
+B. Xem nội dung sắp gửi
+4. Mở “Xem nội dung sẽ gửi”. Chỉ ra nội dung đã qua bộ che mẫu tự động.
+5. Nêu rằng bộ che nhận diện một số mẫu như email, số điện thoại, OTP dạng số và chuỗi số dài; có thể bỏ sót tên riêng, địa chỉ hoặc dữ liệu nhạy cảm khác. Tự rà soát và sửa nội dung trước khi gửi.
+6. Có thể sửa vài chữ trong ô nội dung và ngữ cảnh bổ sung. Nội dung tin nhắn tối đa 20.000 ký tự; ngữ cảnh bổ sung tối đa 1.000 ký tự và cũng được gửi đi.
+
+Lời dẫn quan trọng:
+“UI hiện có phần xem payload đã che nhưng không có checkbox đồng thuận trước nút gửi. Vì vậy đừng nói với người xem rằng họ đã tích đồng thuận hoặc hệ thống đang chặn gửi để chờ checkbox.”
+
+C. Cảm biến cục bộ
+7. Khi nhập/sửa nội dung, nhìn panel “Cảm biến nội dung cục bộ”. Chờ một nhịp ngắn để tín hiệu cập nhật.
+8. Đọc một câu khớp nếu hiện ra; nếu không, UI hiển thị “Chưa thấy mẫu phổ biến trong nội dung hiện tại.”
+9. Chỉ vào chú thích: quy tắc có thể bỏ sót/nhận nhầm, không kết luận nội dung an toàn/lừa đảo; không gửi nội dung đi trong lúc cảm biến hoạt động.
+
+D. Chạy phân tích
+10. Nhấn “Quét dấu hiệu lừa đảo ngay”. Nút chuyển sang trạng thái đang phân tích.
+11. Sau khi có kết quả, chỉ rõ thông báo nếu đây là chế độ demo hoặc phân tích AI.
+12. Đọc mức cảnh báo và tóm tắt. Mức có thể là “Rủi ro cao”, “Có điểm cần kiểm tra”, “Chưa thấy dấu hiệu rõ”, hoặc “Chưa đủ thông tin”.
+13. Kéo tới “Nội dung trong ngữ cảnh”; chỉ một phần tô sáng và giải thích xuất hiện khi rê/đọc tooltip. So sánh câu tô sáng với văn bản nguồn.
+14. Chỉ vào “Nhóm dấu hiệu được trích dẫn”: áp lực thời gian, mạo danh, dụ chuyển tiền, dữ liệu xác thực. Đây là nhóm dấu hiệu có/không dựa trên finding, không phải điểm tâm lý hay xác suất.
+15. Đọc “Cách kiểm chứng an toàn”; đánh dấu một checkbox. Bỏ/đánh lại checkbox nếu muốn minh họa. Trạng thái checklist lưu trong localStorage của trình duyệt theo mã báo cáo.
+16. Đọc “Những điều chưa xác minh”; nếu có nút “Xem thêm … giới hạn”, nhấn để mở và nhấn “Thu gọn”.
+17. Chỉ nhắc cảnh báo “Không chia sẻ OTP, mật khẩu hoặc mã PIN”.
+
+Lời dẫn:
+“Bằng chứng quan trọng nhất là phần trích từ nội dung bạn đưa vào. Hãy đối chiếu từng trích dẫn. Một kết quả ít dấu hiệu chỉ phản ánh phần dữ liệu này, không xác minh người gửi hay website.”
+
+E. Chia sẻ/xuất báo cáo
+18. Nhấn “Sao chép”; báo cáo được đưa vào clipboard, nút tạm đổi thành “Đã sao chép”. Nội dung copy gồm mức cảnh báo, tóm tắt, dấu hiệu, checklist và giới hạn.
+19. Nhấn “In / lưu PDF”; trình duyệt mở hộp thoại in. Chọn máy in hoặc “Save as PDF” tùy trình duyệt.
+20. Chỉ vùng “Nội dung không được lưu tự động”. Báo cáo chỉ lưu nếu người dùng chủ động chọn lưu; ảnh gốc không được lưu.
+
+======================================================================
+3. LUỒNG EMAIL (2–3 PHÚT)
+======================================================================
+
+1. Chọn tab “Email”. Việc đổi loại nội dung xóa nội dung/báo cáo ở form hiện tại.
+2. Nhập dữ liệu tổng hợp vào các trường tùy chọn: “Người gửi”, “Reply-To”, “Tiêu đề”, rồi dán phần nội dung email vào ô lớn.
+3. Có thể nhập người gửi và Reply-To khác nhau để đặt câu hỏi kiểm chứng; không khẳng định chỉ khác nhau đã chứng minh giả mạo.
+4. Mở “Xem nội dung sẽ gửi”, rà soát toàn bộ trường hiển thị và bản đã che. Ngữ cảnh bổ sung là tùy chọn, tối đa 1.000 ký tự.
+5. Nhấn “Quét dấu hiệu lừa đảo ngay”, rồi đọc kết quả theo quy trình ở mục 2D.
+
+Lời dẫn:
+“Ứng dụng chỉ phân tích phần email bạn tự dán và thông tin bạn tự điền. Nó không truy cập hộp thư, không đọc header kỹ thuật đầy đủ và không xác minh danh tính người gửi.”
+
+======================================================================
+4. LUỒNG ĐƯỜNG DẪN / URL (2–3 PHÚT)
+======================================================================
+
+1. Chọn tab “Đường dẫn”.
+2. Nhập một URL giả lập, ví dụ: https://example.test/secure-account hoặc dùng nút “Nạp tình huống” trước đó nếu muốn thay lại nội dung mặc định rồi tự sửa thành URL giả.
+3. Mở “Xem nội dung sẽ gửi”, rà soát chuỗi URL và ngữ cảnh.
+4. Nhấn “Quét dấu hiệu lừa đảo ngay”.
+5. Trong báo cáo, đọc dấu hiệu có bằng chứng và giới hạn. Nếu có hostname lạ, giải thích rằng đây là tín hiệu cần kiểm tra, không phải kết luận website độc hại.
+
+Lời dẫn: ScamLens phân tích cấu trúc văn bản URL như hostname và mẫu đáng ngờ. Ứng dụng không mở URL và không tra cứu danh tiếng website; người demo không bấm mở đường dẫn.”
+
+Các nhóm kiểm tra triển khai trong mã gồm IDN/punycode, ký tự đồng hình phổ biến, cổng bất thường, userinfo/IP, redirect lồng và từ khóa thương hiệu trên domain khác. Chỉ mô tả đây là phân tích cấu trúc, không khẳng định mỗi URL luôn bị phát hiện.
+
+======================================================================
+5. LUỒNG ẢNH CHỤP / BIÊN LAI (3–5 PHÚT)
+======================================================================
+
+Chỉ dùng ảnh giả không chứa dữ liệu thật.
+
+1. Chọn tab “Ảnh chụp”.
+2. Nhấn vùng “Chọn ảnh chụp cần đọc”; chọn JPEG, PNG hoặc WebP có dung lượng gốc không quá 10 MiB. Mã nguồn cũng nhận dán ảnh khi vùng canvas đang được focus.
+3. Khi ảnh hiện trên canvas, kéo để vẽ vùng che lên tên, số tài khoản, QR hoặc thông tin riêng tư giả lập. Ảnh được co tối đa cạnh 1.600 px, vẽ lại và mã hóa JPEG trước khi gửi; file sau xử lý không quá 3 MiB.
+4. Nhấn “Quét dấu hiệu lừa đảo ngay”. Với ảnh vừa chọn, hệ thống gọi OCR trước rồi gửi văn bản OCR sang phân tích. Có thể thấy trạng thái AI đang đọc ảnh.
+5. Khi báo cáo xuất hiện, giải thích rằng ảnh gốc không được lưu; kết quả OCR và phân tích phụ thuộc độ rõ ảnh/provider.
+6. Nếu dùng tình huống biên lai đã nạp sẵn qua nút “Nạp tình huống”, lưu ý đó chỉ là nội dung OCR giả lập trong văn bản; đây không phải ảnh biên lai thật.
+
+Lời dẫn bắt buộc:
+“Bản UI hiện tại chưa hiển thị bước cho người dùng xem, sửa và xác nhận văn bản OCR trước khi phân tích. Vì vậy trong demo này mình không tuyên bố có bước xác nhận OCR.”
+
+Giới hạn:
+- OCR có thể đọc sai. Không xem số tiền, mã tham chiếu hoặc hình ảnh là xác nhận tiền đã vào tài khoản.
+- Có kiểm tra cục bộ một số gợi ý metadata/chữ ký công cụ; trùng chữ ký không chứng minh ảnh bị sửa, không trùng cũng không chứng minh ảnh thật.
+- Không có điểm ELA/compression 0–100 trong UI hiện tại.
+- UI hiện tại không có nút Undo/Redo cho vùng che; chỉ trình diễn thao tác kéo che.
+
+======================================================================
+6. TÀI KHOẢN, LƯU BÁO CÁO, LỊCH SỬ (3–5 PHÚT)
+======================================================================
+
+Điều kiện: Supabase Auth, Google OAuth và bảng/policy RLS đã cấu hình.
+
+1. Nếu chưa đăng nhập, nhấn “Đăng nhập” (hoặc từ vùng lưu chọn “Đăng nhập để lưu”). Hoàn tất luồng Google. Quay lại trang; UI dự kiến hiển thị tài khoản/email, avatar nếu có và nút đăng xuất.
+2. Trở lại báo cáo, nhấn “Lưu vào lịch sử”. Chờ thông báo lưu thành công.
+3. Mở “Lịch sử” từ header hoặc thanh đáy trên mobile.
+4. Giải thích trang chỉ liệt kê báo cáo người dùng đã chủ động lưu, tối đa 20 bản gần nhất trong truy vấn hiện tại; mỗi hàng thể hiện loại nội dung, tiêu đề, ngày giờ và mức cảnh báo.
+5. Nhấn “Mở” ở một hàng. Báo cáo đã lưu hiện phần tóm tắt, finding, trích dẫn, giải thích và checklist; nhấn “Đóng” để trở về danh sách.
+6. Nhấn biểu tượng xóa ở hàng demo. Xác nhận hộp thoại “Xóa báo cáo này khỏi lịch sử?”; hàng biến mất nếu API trả thành công.
+7. Đăng xuất nếu phù hợp với kịch bản.
+
+Nếu Supabase chưa cấu hình: /history hiện thông báo chưa cấu hình. Nếu chưa đăng nhập: trang yêu cầu chuyển tới đăng nhập. Không trình diễn như thể lịch sử đã được lưu trên môi trường chưa cấu hình.
+
+Lời dẫn:“Bản lưu thuộc tài khoản và được giới hạn theo quyền truy cập phía máy chủ/RLS. Đây là điều kiện cần được kiểm tra trên môi trường Supabase thật; một lần mở được trang local không tự chứng minh cách ly tài khoản production.”
+
+======================================================================
+7. TRANG “CÁCH TỰ BẢO VỆ” VÀ QUYỀN RIÊNG TƯ (2–3 PHÚT)
+======================================================================
+
+1. Mở “Cách tự bảo vệ” trên header hoặc mục “Tự vệ” ở thanh đáy mobile.
+2. Đi lần lượt qua năm phần:
+   1) Gửi nội dung cần kiểm tra: dán nội dung tự có; với ảnh, che trước khi tải; kiểm tra phần OCR (lời dẫn cần nói chính xác giới hạn UI ở mục 5).
+   2) Đọc kết quả và bằng chứng: đối chiếu trích dẫn, hiểu ba mức thấp/cao/thiếu dữ liệu đúng phạm vi.
+   3) Kiểm chứng an toàn: tự mở ứng dụng/kênh chính thức, không dùng số/link trong tin nhắn đáng ngờ.
+   4) Quyền riêng tư và AI: phần đã che được gửi tới nhà cung cấp AI khi phân tích; rà soát tên riêng/dữ liệu còn sót; ảnh được tái mã hóa và ảnh gốc không lưu; nội dung không tự lưu; báo cáo đã lưu có thể xóa.
+   5) Bản demo và khả năng kiểm tra: [MẪU GIẢ LẬP] là dữ liệu trình bày; chế độ demo không gọi AI.
+3. Nhấn “Mở công cụ phân tích” hoặc “Quay lại trang phân tích”.
+
+Lời dẫn:“Không gửi dữ liệu mình không có quyền chia sẻ. Khi cần xác minh, tự tìm kênh liên hệ độc lập thay vì trả lời theo số điện thoại hoặc link trong nội dung.”
+
+======================================================================
+8. MOBILE, GIAO DIỆN SÁNG/TỐI, KẾT THÚC (1–2 PHÚT)
+======================================================================
+
+1. Thu nhỏ cửa sổ hoặc mở viewport mobile. Chỉ ra header gọn, tab loại nội dung, panel cảm biến và thanh điều hướng đáy.
+2. Mở “Giao diện” ở thanh đáy để đổi sáng/tối.
+3. Chạm “Soi rọi” để về phân tích, “Tự vệ” để mở hướng dẫn. Dùng “Lịch sử” nếu Supabase/Auth sẵn sàng.
+4. Kết thúc bằng một thông điệp hành động:
+“Dừng lại trước yêu cầu khẩn cấp; không chia sẻ OTP/mật khẩu; tự xác minh qua app hoặc số liên hệ chính thức. ScamLens cung cấp tín hiệu và bằng chứng trong nội dung, còn quyết định xác minh cần dựa trên kênh độc lập.”
+
+======================================================================
+9. TRẠNG THÁI VÀ LỖI CÓ THỂ GẶP KHI DEMO
+======================================================================
+
+- Nút phân tích bị khóa: chưa có nội dung (hoặc chưa có file ảnh phù hợp).
+- Ảnh sai định dạng/quá lớn: chỉ JPEG, PNG, WebP; tối đa 10 MiB đầu vào; ảnh xử lý quá 3 MiB sẽ báo lỗi.
+- OCR không đọc được chữ: chọn ảnh rõ hơn; không tự dựng kết quả để nói như OCR thật.
+- AI/API lỗi, hết quota, timeout hoặc model không hỗ trợ ảnh: UI sẽ báo lỗi; không diễn giải lỗi là “không có lừa đảo”. Chuyển sang SCAMLENS_DEMO_MODE=true nếu cần luồng báo cáo minh họa ổn định.
+- Copy bị trình duyệt chặn clipboard: dùng “In / lưu PDF”.
+- Lưu/mở/xóa lịch sử lỗi: kiểm tra cấu hình Supabase/migration/RLS trước; không giả lập thông báo thành công bằng lời nói.
+- Nếu OAuth báo chưa hoàn tất: bắt đầu đăng nhập lại trên cùng domain và kiểm tra callback Supabase.
+
+======================================================================
+10. ĐỐI CHIẾU TÍNH NĂNG VỚI UI HIỆN TẠI — ĐỪNG TUYÊN BỐ QUÁ MÃ NGUỒN
+======================================================================
+
+Đã thấy trong UI/component hiện tại:
+- Trang chủ; tab Tin nhắn, Email, Ảnh chụp, Đường dẫn.
+- Form người gửi, Reply-To, tiêu đề cho email; trường nội dung và ngữ cảnh.
+- Nút “Nạp tình huống” nạp case dịch vụ công/tên miền giả mặc định.
+- Preview nội dung đã che; cảm biến heuristic chạy cục bộ; phân tích; báo cáo; checklist localStorage; sao chép/in; đăng nhập/lưu; hướng dẫn; lịch sử; dark mode; thanh điều hướng mobile.
+- Case fixtures có tám mục trong source, nhưng UI component hiện chỉ nạp mục đầu; không có bộ chọn các case.
+
+Lệch giữa một số tài liệu dự án/ghi chú cũ với component UI hiện tại:
+- Không thấy checkbox đồng thuận AI ngay trước khi gửi; chỉ có preview payload và lời nhắc rà soát.
+- Không có UI xem, sửa, xác nhận OCR trước khi phân tích ảnh; phân tích ảnh mới chọn gọi OCR rồi tiếp tục phân tích.
+- Không thấy điều khiển cỡ chữ nhỏ/mặc định/lớn trong component hiện tại.
+- Image redactor hiện có kéo để che nhưng không thấy Undo/Redo.
+- Không thấy trang/chức năng ELA hoặc điểm giả mạo ảnh dạng 0–100.
+- Không có lựa chọn qua UI cho các tình huống mẫu còn lại.
+
+Các điểm lệch trên được ghi để kịch bản trung thực với source, không phải xác nhận rằng sản phẩm đã đáp ứng các yêu cầu đó. Nếu đây là các yêu cầu bắt buộc của buổi demo, cần cập nhật/khôi phục UI tương ứng rồi đối chiếu lại trước khi viết lời dẫn khẳng định.
+
+======================================================================
+11. CĂN CỨ ĐỐI CHIẾU TRONG REPOSITORY
+======================================================================
+
+- Trang chủ và thao tác form/báo cáo: src/components/home-app.tsx
+- Nạp ảnh, canvas che vùng: src/components/image-redactor.tsx
+- Danh sách case mẫu: src/lib/analysis/case-studies.ts
+- Trang hướng dẫn/quyền riêng tư: src/app/guide/page.tsx
+- Trang và panel lịch sử: src/app/history/page.tsx, src/components/history-panel.tsx
+- Điều hướng mobile: src/components/mobile-bottom-nav.tsx
+- Dark mode: src/components/theme-toggle.tsx
+- API OCR/phân tích/lưu báo cáo: src/app/api/ocr/route.ts, src/app/api/analyze/route.ts, src/app/api/reports/route.ts
+- Mô tả cài đặt/chế độ demo: README.md
+
+Ghi chú: Kịch bản này được soạn bằng cách đọc source và tài liệu trong repository; chưa chạy live provider, OAuth, Supabase production hoặc thao tác trên thiết bị thật trong lượt soạn này.

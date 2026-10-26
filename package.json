@@ -11,11 +11,16 @@
     "test": "vitest run src",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
-    "smoke:ai": "node scripts/deepseek-smoke.mjs"
+    "smoke:ai": "node scripts/deepseek-smoke.mjs",
+    "jev:dry-run": "tsx scripts/jev/cli.ts dry-run",
+    "jev:smoke": "tsx scripts/jev/cli.ts smoke",
+    "jev:eval": "tsx scripts/jev/cli.ts eval",
+    "jev:report": "tsx scripts/jev/cli.ts report"
   },
   "dependencies": {
     "@supabase/ssr": "^0.10.0",
     "@supabase/supabase-js": "^2.99.0",
+    "@typesafe-ai/sdk": "0.7.0",
     "@upstash/ratelimit": "^2.0.8",
     "@upstash/redis": "^1.36.0",
     "lucide-react": "^0.577.0",
@@ -38,6 +43,7 @@
     "eslint-config-next": "16.2.9",
     "jsdom": "^27.4.0",
     "tailwindcss": "^4.1.18",
+    "tsx": "4.23.15",
     "typescript": "^5.9.3",
     "vitest": "^4.0.15"
   },

@@ -57,6 +57,9 @@ Hướng dẫn đầy đủ:
 - [Kiểm thử và demo](docs/TEST_DEMO_VI.md)
 - [Đưa repo GitHub lên Vercel](docs/DEPLOY_VI.md)
 - [Nguyên tắc riêng tư và giới hạn](docs/PRIVACY_VI.md)
+- [Đánh giá khả thi thử nghiệm TypeSafe JEV](docs/JEV_FEASIBILITY_VI.md)
+- [Đặc tả PoC JEV](docs/JEV_POC_SPEC_VI.md)
+- [Cài đặt và chạy benchmark JEV](docs/JEV_SETUP_AND_EVALUATION_VI.md)
 - [Roadmap, trạng thái nghiệm thu và blocker hiện tại](docs/ROADMAP_VI.md)
 
 ## Quyền riêng tư và phạm vi

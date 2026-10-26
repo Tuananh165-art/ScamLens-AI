@@ -20,6 +20,8 @@ const completionSchema = z.object({
     finish_reason: z.string().nullable().optional(),
     message: z.object({ content: z.string().nullable().optional() }),
   })).min(1),
+  model: z.string().optional(),
+  usage: z.object({ prompt_tokens: z.number().int().nonnegative(), completion_tokens: z.number().int().nonnegative() }).optional(),
 });
 
 type ImageMime = "image/jpeg" | "image/png" | "image/webp";
@@ -39,11 +41,13 @@ function providerError(status: number): Error {
   return new Error("deepseek_request_rejected");
 }
 
-async function requestCompletion(input: {
+type CompletionResult = { content: string; model: string; inputTokens?: number; outputTokens?: number };
+
+async function requestCompletionDetailed(input: {
   messages: Array<Record<string, unknown>>;
   maxTokens: number;
   model?: string;
-}): Promise<string> {
+}): Promise<CompletionResult> {
   const { apiKey, model } = configuredDeepSeek();
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
@@ -74,7 +78,11 @@ async function requestCompletion(input: {
     if (choice.finish_reason && choice.finish_reason !== "stop") throw new Error("deepseek_invalid_response");
     const content = choice.message.content?.trim();
     if (!content || content.length > 25_000) throw new Error("deepseek_invalid_response");
-    return content;
+    return {
+      content,
+      model: parsed.data.model || input.model || model,
+      ...(parsed.data.usage ? { inputTokens: parsed.data.usage.prompt_tokens, outputTokens: parsed.data.usage.completion_tokens } : {}),
+    };
   } catch (error) {
     if (error instanceof Error && error.message.startsWith("deepseek_")) throw error;
     if (controller.signal.aborted || (error instanceof Error && (error.name === "AbortError" || error.name === "TimeoutError"))) {
@@ -86,21 +94,29 @@ async function requestCompletion(input: {
   }
 }
 
+async function requestCompletion(input: { messages: Array<Record<string, unknown>>; maxTokens: number; model?: string }): Promise<string> {
+  return (await requestCompletionDetailed(input)).content;
+}
+
 function parseJson(raw: string): unknown {
   try { return JSON.parse(raw) as unknown; } catch { throw new Error("deepseek_invalid_json"); }
 }
 
 export async function analyzeWithDeepSeek(prompt: string): Promise<ModelReport> {
-  const raw = await requestCompletion({
+  return (await analyzeWithDeepSeekDetailed(prompt)).report;
+}
+
+export async function analyzeWithDeepSeekDetailed(prompt: string): Promise<{ report: ModelReport; model: string; inputTokens?: number; outputTokens?: number }> {
+  const completion = await requestCompletionDetailed({
     messages: [
       { role: "system", content: ANALYSIS_SYSTEM_PROMPT },
       { role: "user", content: prompt },
     ],
     maxTokens: 3_200,
   });
-  const result = modelReportSchema.safeParse(sanitizeModelReport(parseJson(raw)));
+  const result = modelReportSchema.safeParse(sanitizeModelReport(parseJson(completion.content)));
   if (!result.success) throw new Error("deepseek_invalid_schema");
-  return result.data;
+  return { report: result.data, model: completion.model, ...(completion.inputTokens !== undefined ? { inputTokens: completion.inputTokens } : {}), ...(completion.outputTokens !== undefined ? { outputTokens: completion.outputTokens } : {}) };
 }
 
 function sanitizeModelReport(value: unknown): unknown {
