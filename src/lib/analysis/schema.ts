@@ -51,7 +51,22 @@ export const analyzeRequestSchema = z.object({
   replyTo: z.string().trim().max(300).optional().default(""),
   subject: z.string().trim().max(500).optional().default(""),
   confirmedOcr: z.boolean().optional().default(false),
+  includeJev: z.boolean().optional().default(false),
 });
+
+export const jevAssessmentSchema = z.discriminatedUnion("status", [
+  z.object({
+    status: z.literal("complete"),
+    model: z.string().min(1).max(80),
+    sufficiency: z.enum(["usable", "limited", "unusable"]),
+    signals: z.array(z.object({
+      id: z.enum(["requests_credentials", "requests_payment", "uses_pressure", "claims_authority", "bypasses_official_channel", "promises_guaranteed_return"]),
+      probability: z.number().finite().min(0).max(1),
+      result: z.enum(["present", "not_detected", "uncertain"]),
+    })).length(6),
+  }),
+  z.object({ status: z.literal("unavailable"), reason: z.enum(["quota", "provider_error"]) }),
+]);
 
 export const evidenceRefSchema = z.object({
   sourceId: z.string(),
@@ -82,9 +97,11 @@ export const analysisReportSchema = z.object({
     hostname: z.string().optional(),
   }),
   model: z.object({ text: z.string(), image: z.string().optional() }),
+  jev: jevAssessmentSchema.optional(),
 });
 
 export type AnalyzeRequest = z.infer<typeof analyzeRequestSchema>;
 export type AnalysisReport = z.infer<typeof analysisReportSchema>;
 export type ModelReport = z.infer<typeof modelReportSchema>;
 export type Finding = z.infer<typeof findingSchema>;
+export type JevAssessment = z.infer<typeof jevAssessmentSchema>;

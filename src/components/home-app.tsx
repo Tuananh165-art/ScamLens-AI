@@ -10,6 +10,7 @@ import {
   Shield, ShieldAlert, ShieldCheck, Sparkles, TriangleAlert, Zap,
 } from "lucide-react";
 import { ImageRedactor } from "@/components/image-redactor";
+import { JevAssessmentCard } from "@/components/jev-assessment-card";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { LogoutButton } from "@/components/logout-button";
 import { redactSensitiveText } from "@/lib/analysis/redact";
@@ -38,6 +39,8 @@ export function HomeApp({ signedIn, email, avatarUrl, authConfigured, authError 
   const [replyTo, setReplyTo] = useState("");
   const [subject, setSubject] = useState("");
   const [report, setReport] = useState<AnalysisReport | null>(null);
+  const [jevAvailable, setJevAvailable] = useState(false);
+  const [useJev, setUseJev] = useState(false);
   const [busy, setBusy] = useState(false);
   const [feedback, setFeedback] = useState<Feedback>(null);
   const [copied, setCopied] = useState(false);
@@ -49,6 +52,20 @@ export function HomeApp({ signedIn, email, avatarUrl, authConfigured, authError 
   const reportRef = useRef<HTMLElement>(null);
   const demoPickerRef = useRef<HTMLDivElement>(null);
   const [isDemoDropdownOpen, setIsDemoDropdownOpen] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    fetch("/api/health", { cache: "no-store" })
+      .then((response) => response.json())
+      .then((body) => {
+        if (!active) return;
+        const available = body?.services?.jev === true;
+        setJevAvailable(available);
+        if (!available) setUseJev(false);
+      })
+      .catch(() => { if (active) { setJevAvailable(false); setUseJev(false); } });
+    return () => { active = false; };
+  }, []);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -90,12 +107,13 @@ export function HomeApp({ signedIn, email, avatarUrl, authConfigured, authError 
 
   function switchType(next: InputType) {
     setType(next); setContent(""); setSender(""); setReplyTo(""); setSubject(""); setContext("");
-    setReport(null); setFeedback(null); setRedactedImage(null);
+    setReport(null); setFeedback(null); setRedactedImage(null); setUseJev(false);
     setOcrText(""); setOcrConfirmed(false); setImageStep("select"); setImageMode("quick");
   }
 
   function loadDemo(caseItem?: (typeof demoCaseStudies)[0]) {
     const item = caseItem ?? demoCaseStudies[0];
+    setUseJev(false);
     setType(item.type);
     setRedactedImage(null);
     setContent(item.content); setSender(item.sender ?? ""); setReplyTo(item.replyTo ?? ""); setSubject(item.subject ?? "");
@@ -155,6 +173,7 @@ export function HomeApp({ signedIn, email, avatarUrl, authConfigured, authError 
         type, content: type === "image" ? redactSensitiveText(analysisContent) : redactedPayload.content,
         context: redactedPayload.context, sender: redactedPayload.sender, replyTo: redactedPayload.replyTo, subject: redactedPayload.subject,
         confirmedOcr: type === "image" && confirmedOcr,
+        includeJev: useJev,
       };
       const response = await fetch("/api/analyze", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), cache: "no-store" });
       const result = await response.json();
@@ -193,6 +212,7 @@ export function HomeApp({ signedIn, email, avatarUrl, authConfigured, authError 
       `Mức cảnh báo: ${riskLabels[report.riskLevel]}`,
       "",
       report.summary,
+      ...(report.jev?.status === "complete" ? ["", "TÍN HIỆU BỔ SUNG TỪ JEV", ...report.jev.signals.map((signal) => `${signal.id}: ${Math.round(signal.probability * 100)}% (${signal.result})`)] : []),
       "",
       "DẤU HIỆU CẦN LƯU Ý",
       ...findings,
@@ -286,7 +306,7 @@ export function HomeApp({ signedIn, email, avatarUrl, authConfigured, authError 
                 role="radio"
                 aria-checked={imageMode === "quick"}
                 className={`flow-mode-btn ${imageMode === "quick" ? "active" : ""}`}
-                onClick={() => setImageMode("quick")}
+                onClick={() => { setImageMode("quick"); setUseJev(false); }}
               >
                 <Zap size={14} /> Quét nhanh
               </button>
@@ -302,7 +322,7 @@ export function HomeApp({ signedIn, email, avatarUrl, authConfigured, authError 
             </div>
 
             <ImageRedactor
-              onPrepared={(file) => setRedactedImage(file)}
+              onPrepared={(file) => { setRedactedImage(file); setUseJev(false); }}
               onClear={() => { setRedactedImage(null); setOcrText(""); setOcrConfirmed(false); setImageStep("select"); }}
             />
 
@@ -334,7 +354,7 @@ export function HomeApp({ signedIn, email, avatarUrl, authConfigured, authError 
                       <button
                         type="button"
                         className="text-button"
-                        onClick={() => { setImageStep("select"); setOcrConfirmed(false); }}
+                        onClick={() => { setImageStep("select"); setOcrConfirmed(false); setUseJev(false); }}
                       >
                         Đọc lại từ ảnh
                       </button>
@@ -351,7 +371,7 @@ export function HomeApp({ signedIn, email, avatarUrl, authConfigured, authError 
                       <input
                         type="checkbox"
                         checked={ocrConfirmed}
-                        onChange={(e) => setOcrConfirmed(e.target.checked)}
+                        onChange={(e) => { setOcrConfirmed(e.target.checked); if (!e.target.checked) setUseJev(false); }}
                       />
                       <span>Tôi đã kiểm tra chữ trong ảnh này là chính xác</span>
                     </label>
@@ -448,6 +468,13 @@ export function HomeApp({ signedIn, email, avatarUrl, authConfigured, authError 
             </div>
           )}
 
+          {jevAvailable ? <div className="jev-opt-in">
+            <label className="check-label"><input type="checkbox" checked={useJev} onChange={(event) => setUseJev(event.target.checked)} disabled={busy || (type === "image" && (imageMode !== "step" || !ocrConfirmed))} /><span><strong>Đối chiếu thêm bằng JEV</strong><small>Gửi nội dung đã che tới TypeSafe để chấm sáu tín hiệu riêng. Tùy chọn này không làm giảm cảnh báo chính.</small></span></label>
+            <p>{type === "image" ? "Với ảnh, chuyển sang Kiểm tra từng bước và xác nhận phần OCR trước; JEV chỉ nhận bản chữ, không nhận ảnh." : "Nội dung vẫn có thể còn dữ liệu nhận dạng chưa được che. Hãy rà soát phần “Xem nội dung sẽ gửi” trước khi bật."}</p>
+          </div> : <div className="jev-opt-in jev-opt-in-disabled" role="status">
+            <strong>Đối chiếu JEV chưa được bật</strong><p>Luồng web chỉ dùng các dịch vụ AI đang cấu hình. Quản trị viên cần bật JEV trong cấu hình server trước khi sử dụng.</p>
+          </div>}
+
           {feedback && <div className={`feedback feedback-${feedback.kind}`} role={feedback.kind === "error" ? "alert" : "status"}>{feedback.kind === "error" ? <TriangleAlert size={16} /> : feedback.kind === "success" ? <Check size={16} /> : <CircleHelp size={16} />}{feedback.text}</div>}
           <button className="primary-button full-button analyze-button" type="button" disabled={!canAnalyze || busy} onClick={analyze}>{busy ? <span className="loading-shimmer"><LoaderCircle size={16} className="spin" /> {type === "image" ? "AI đang đọc ảnh và phân tích..." : "Đang phân tích..."}</span> : <><Sparkles size={16} /> Quét dấu hiệu lừa đảo ngay <ArrowRight size={15} /></>}</button>
         </section>
@@ -513,10 +540,12 @@ function ReportView({ ref, report, signedIn, busy, onSave, onCopy, copied }: { r
       </div>
       <div className="report-meta">
         <span>{new Date(report.createdAt).toLocaleString("vi-VN", { dateStyle: "medium", timeStyle: "short" })}</span>
-        <span>{report.model.text === "demo-rules" ? "Mô hình quy tắc" : "Trí tuệ nhân tạo DeepSeek"}</span>
+        <span>{report.model.text === "demo-rules" ? "Mô hình quy tắc" : report.jev?.status === "complete" ? "DeepSeek · đối chiếu JEV" : "Trí tuệ nhân tạo DeepSeek"}</span>
         <span>{report.source.confirmedOcr ? "Bản đọc ảnh OCR xác nhận" : "Nguồn trực tiếp"}</span>
       </div>
     </div>
+
+    {report.jev && <JevAssessmentCard assessment={report.jev} confirmedOcr={report.source.confirmedOcr} />}
 
     {report.findings.length > 0 && (
       <div className="contextual-source">

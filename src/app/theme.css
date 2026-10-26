@@ -1292,6 +1292,31 @@ summary:focus-visible {
   margin-top: 14px;
 }
 
+.jev-opt-in {
+  margin-top: 14px;
+  padding: 13px 15px;
+  border: 1px solid color-mix(in srgb, var(--blue) 28%, var(--line));
+  border-radius: var(--radius-md);
+  background: var(--blue-wash);
+}
+
+.jev-opt-in .check-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.jev-opt-in .check-label input { margin-top: 3px; accent-color: var(--blue); }
+.jev-opt-in .check-label span { display: grid; gap: 3px; }
+.jev-opt-in .check-label small,
+.jev-opt-in p { color: var(--muted); font-size: var(--text-2xs); line-height: 1.55; }
+.jev-opt-in p { margin: 8px 0 0 25px; }
+.jev-opt-in-disabled { border-color: var(--line); background: var(--surface-soft); }
+.jev-opt-in-disabled strong { color: var(--ink); font-size: var(--text-xs); }
+.jev-opt-in-disabled p { margin-left: 0; }
+
 .feedback svg {
   flex-shrink: 0;
   margin-top: 1px;
@@ -1817,13 +1842,26 @@ summary:focus-visible {
 }
 
 .contextual-source,
-.manipulation-gauge {
+.manipulation-gauge,
+.jev-assessment {
   margin-top: 18px;
   padding: 18px 20px;
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
   background: var(--paper);
 }
+
+.jev-assessment-unavailable { border-color: var(--amber-wash); }
+.jev-signal-list { list-style: none; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 14px 0 0; padding: 0; }
+.jev-signal { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--surface-soft); }
+.jev-signal > span:first-child { display: grid; gap: 3px; }
+.jev-signal strong { color: var(--ink); font-size: var(--text-2xs); }
+.jev-signal small { color: var(--muted); font-size: 11px; }
+.jev-probability { color: var(--muted); font: 600 var(--text-xs) var(--font-mono); flex-shrink: 0; }
+.jev-signal-present { border-color: var(--amber); background: var(--amber-wash); }
+.jev-signal-present .jev-probability { color: var(--amber); }
+.jev-signal-uncertain .jev-probability { color: var(--muted); }
+.jev-note { margin: 12px 0 0; color: var(--muted); font-size: var(--text-2xs); line-height: 1.55; }
 
 .result-card-heading {
   display: flex;
@@ -2497,6 +2535,8 @@ html[data-theme="dark"] .evidence-mark.severity-low {
     padding: 6px 2px;
   }
 
+  .jev-signal-list { grid-template-columns: 1fr; }
+
   .email-fields-grid {
     grid-template-columns: 1fr;
     gap: 10px;
@@ -2666,6 +2706,7 @@ html[data-theme="dark"] .evidence-mark.severity-low {
 
   .contextual-source,
   .manipulation-gauge,
+  .jev-assessment,
   .protocol-card,
   .limits-card {
     break-inside: avoid;
@@ -2675,6 +2716,7 @@ html[data-theme="dark"] .evidence-mark.severity-low {
     margin-top: 14px !important;
     padding: 14px !important;
   }
+
 
   .source-highlight-text {
     background: #f8fafc !important;

@@ -24,11 +24,12 @@ Không có dependency service nào thì giao diện và trang hướng dẫn v�
 
 ## Các tính năng
 
-- Tin nhắn, email, URL và ảnh đều dùng DeepSeek; với ảnh, người dùng xem/sửa/xác nhận OCR trước khi phân tích.
+- Tin nhắn, email, URL và ảnh dùng DeepSeek; người dùng có thể chủ động bật JEV để đối chiếu thêm sáu tín hiệu. Với ảnh, JEV chỉ nhận chữ OCR đã che, không nhận ảnh.
 - Preview bản gửi, che một số mẫu nhạy cảm và cho sửa trước khi gửi.
 - Báo cáo tiếng Việt có dấu hiệu, trích dẫn nguyên văn, checklist và giới hạn kiểm chứng; không in phần trăm rủi ro.
 - Lưu thủ công vào lịch sử Supabase riêng theo RLS; không tự lưu hoặc upload ảnh gốc.
 - Quota theo người dùng/khách, provider và phút. Dùng bộ đếm cục bộ ở local; production yêu cầu Upstash.
+- JEV tắt mặc định, yêu cầu bật bằng cấu hình server và đồng ý qua checkbox; tín hiệu JEV không thay đổi hoặc làm giảm cảnh báo chính.
 - Không mở URL đáng ngờ. Chỉ parse cấu trúc URL và public suffix list trong server.
 - Xuất bản báo cáo qua copy/print trong trình duyệt.
 
@@ -64,7 +65,7 @@ Hướng dẫn đầy đủ:
 
 ## Quyền riêng tư và phạm vi
 
-Trước khi gửi, giao diện yêu cầu xác nhận nhà cung cấp AI sẽ nhận nội dung. Tự rà soát bản đã che: regex không thể bảo đảm tìm thấy mọi dữ liệu riêng tư. DeepSeek xử lý nội dung được gửi theo điều khoản của dịch vụ API; không gửi dữ liệu bạn không được phép chia sẻ. Ảnh được resize, tái mã hóa trong trình duyệt và che vùng được chọn trước khi truyền. Báo cáo chỉ lưu khi người dùng bấm lưu.
+Rà soát bản đã che trước khi gửi: regex không thể bảo đảm tìm thấy mọi dữ liệu riêng tư. DeepSeek xử lý nội dung được gửi theo điều khoản dịch vụ API. JEV chỉ nhận thêm dữ liệu khi người dùng bật lựa chọn riêng; TypeSafe xử lý input theo chính sách riêng và thời hạn lưu có thể phụ thuộc loại dữ liệu/thỏa thuận. Ảnh được resize, tái mã hóa trong trình duyệt và che vùng được chọn trước khi truyền; JEV chỉ nhận OCR text đã che. Báo cáo chỉ lưu khi người dùng bấm lưu.
 
 ScamLens không xác nhận danh tính tổ chức, chất lượng website, giao dịch thành công, chứng cứ pháp lý hoặc một nội dung là “an toàn”. Mỗi kết quả áp dụng cho phần văn bản được đưa vào. Ảnh biên lai không chứng minh tiền đã vào tài khoản.
 

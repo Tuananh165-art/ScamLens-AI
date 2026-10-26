@@ -1,6 +1,6 @@
 # Đánh giá khả thi: TypeSafe Jev trong ScamLens-AI
 
-Ngày đối chiếu: 25-10-2026. Phạm vi: nghiên cứu và PoC trên dữ liệu tổng hợp; không thay đổi luồng phân tích báo cáo của người dùng.
+Ngày đối chiếu: 27-10-2026. Phạm vi ban đầu là nghiên cứu và PoC trên dữ liệu tổng hợp. Theo yêu cầu tiếp theo, dự án đã thêm adapter web JEV tùy chọn để kiểm tra có kiểm soát; chưa có kết quả live trong project.
 
 ## Kết luận
 
@@ -38,3 +38,7 @@ Nhà cung cấp nói dữ liệu khách hàng không dùng để huấn luyện,
 ## Quyết định sau PoC
 
 Giữ riêng hai kết quả: phân loại dấu hiệu và kiểm tra quan hệ bằng chứng. Mỗi kết quả cần vượt tiêu chí trong [đặc tả PoC](JEV_POC_SPEC_VI.md) trên tập đánh giá đã khóa. Nếu không vượt, ưu tiên sửa quy tắc hoặc prompt DeepSeek thay vì giữ thêm hạ tầng provider. Kể cả khi vượt, bước pilot cần được duyệt riêng; benchmark nhỏ chỉ tạo bằng chứng ban đầu, không chứng minh hiệu quả ngoài đời thực.
+
+## Trạng thái adapter web
+
+Adapter web là tùy chọn do người dùng chủ động bật; nó thêm một thẻ tín hiệu riêng vào báo cáo và lịch sử. DeepSeek/quy tắc vẫn sở hữu báo cáo chính và việc tính rủi ro. JEV bật tắt qua biến server `TYPESAFE_WEB_ENABLED`; hiện trạng trong local `.env` vẫn để tắt và `TYPESAFE_KEY_ROTATED=false`, vì key từng xuất hiện trong chat cần thu hồi/thay mới. Chỉ sau khi xác nhận thay key và kiểm tra quota mới có thể bật để chạy smoke web bằng tình huống tổng hợp.

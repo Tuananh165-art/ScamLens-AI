@@ -72,7 +72,7 @@ function noDiacritics(value: string) {
 }
 
 function makeInput(type: (typeof sourceTypes)[number], content: string): BenchmarkSample["input"] {
-  const request: AnalyzeRequest = { type, content, context: "", sender: "", replyTo: "", subject: "", confirmedOcr: type === "image" };
+  const request: AnalyzeRequest = { type, content, context: "", sender: "", replyTo: "", subject: "", confirmedOcr: type === "image", includeJev: false };
   if (type === "url") {
     const slug = /OTP|mã|mật khẩu|PIN|CVV/i.test(content) ? "xac-minh" : "thong-tin";
     return { type, content: `https://${slug}.example.test/tra-cuu`, context: content };

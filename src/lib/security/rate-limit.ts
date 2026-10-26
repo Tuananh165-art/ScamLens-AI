@@ -6,6 +6,7 @@ const localCounts = new Map<string, { count: number; expiresAt: number }>();
 const WINDOW_MINUTE = 60_000;
 
 type LimitReason = "per_minute" | "daily_actor" | "provider_daily";
+type Provider = "deepseek" | "typesafe";
 export type LimitResult = { allowed: boolean; retryAfterSeconds: number; backend: "upstash" | "local"; reason?: LimitReason };
 
 export function quotaLimitMessage(result: LimitResult) {
@@ -73,6 +74,36 @@ export async function takeQuota(input: { ip: string; userId?: string; provider: 
     numberEnv("RATE_LIMIT_DEEPSEEK_DAILY", 30));
   if (!provider.allowed) return { ...provider, retryAfterSeconds: Math.ceil(dayResetMilliseconds / 1000), backend, reason: "provider_daily" };
   return { ...provider, backend };
+}
+
+// The main DeepSeek request already consumes the actor and per-minute quota.
+// This secondary cap protects the optional JEV provider without charging the
+// actor quota a second time for one user action.
+export async function takeAdditionalProviderQuota(provider: Provider): Promise<LimitResult> {
+  const now = Date.now();
+  const dayBucket = new Date(now).toISOString().slice(0, 10);
+  const dayResetSeconds = secondsUntilUtcReset(now);
+  const capName = provider === "typesafe" ? "RATE_LIMIT_TYPESAFE_DAILY" : "RATE_LIMIT_DEEPSEEK_DAILY";
+  const cap = numberEnv(capName, 30);
+  const backend: "upstash" | "local" = redisConfigured() ? "upstash" : "local";
+  if (process.env.NODE_ENV === "production" && backend === "local") throw new Error("quota_unavailable");
+  if (backend === "upstash") {
+    try {
+      const redis = Redis.fromEnv();
+      const providerKey = `scamlens:provider:${dayBucket}:${provider}`;
+      const count = await redis.incr(providerKey);
+      if (count === 1) await redis.expire(providerKey, dayResetSeconds);
+      return count > cap
+        ? { allowed: false, retryAfterSeconds: dayResetSeconds, backend, reason: "provider_daily" }
+        : { allowed: true, retryAfterSeconds: 0, backend };
+    } catch {
+      throw new Error("quota_unavailable");
+    }
+  }
+  const result = hitLocal(`provider:${dayBucket}:${provider}`, now, dayResetSeconds * 1000, cap);
+  return result.allowed
+    ? { ...result, backend }
+    : { ...result, backend, reason: "provider_daily", retryAfterSeconds: dayResetSeconds };
 }
 
 function secondsUntilUtcReset(now: number) {

@@ -13,7 +13,7 @@ vi.mock("@upstash/ratelimit", () => ({
   },
 }));
 
-import { quotaLimitMessage, takeQuota } from "./rate-limit";
+import { quotaLimitMessage, takeAdditionalProviderQuota, takeQuota } from "./rate-limit";
 
 describe("DeepSeek quota limits", () => {
   beforeEach(() => {
@@ -25,6 +25,7 @@ describe("DeepSeek quota limits", () => {
     vi.stubEnv("RATE_LIMIT_HMAC_SECRET", "test-secret");
     vi.stubEnv("RATE_LIMIT_GUEST_DAILY", "5");
     vi.stubEnv("RATE_LIMIT_DEEPSEEK_DAILY", "30");
+    vi.stubEnv("RATE_LIMIT_TYPESAFE_DAILY", "3");
     mocks.redis.incr.mockReset();
     mocks.redis.expire.mockReset().mockResolvedValue(1);
     mocks.minuteLimit.mockReset().mockResolvedValue({ success: true, reset: Date.now() + 60_000 });
@@ -72,5 +73,15 @@ describe("DeepSeek quota limits", () => {
 
     expect(result).toMatchObject({ allowed: false, reason: "provider_daily", retryAfterSeconds: 43_200 });
     expect(quotaLimitMessage(result)).toContain("hạn mức AI trong ngày");
+  });
+
+  it("applies an independent JEV daily provider cap without incrementing the user quota again", async () => {
+    mocks.redis.incr.mockResolvedValueOnce(4);
+
+    const result = await takeAdditionalProviderQuota("typesafe");
+
+    expect(result).toMatchObject({ allowed: false, reason: "provider_daily", retryAfterSeconds: 43_200 });
+    expect(mocks.redis.incr).toHaveBeenCalledOnce();
+    expect(mocks.redis.incr).toHaveBeenCalledWith("scamlens:provider:2026-10-15:typesafe");
   });
 });

@@ -5,10 +5,12 @@ import { getRuleFindings } from "@/lib/analysis/rules";
 import { inspectUrl } from "@/lib/analysis/url";
 import { buildAnalysisPrompt } from "@/lib/analysis/prompts";
 import { analyzeWithDeepSeek } from "@/lib/ai/deepseek";
+import { analyzeWithJev, isJevWebAvailable } from "@/lib/ai/jev";
 import { publicError } from "@/lib/ai/errors";
-import { quotaLimitMessage, takeQuota } from "@/lib/security/rate-limit";
+import { quotaLimitMessage, takeAdditionalProviderQuota, takeQuota } from "@/lib/security/rate-limit";
 import { getAuthenticatedUser } from "@/lib/supabase/server";
 import { privateJson } from "@/lib/http";
+import { redactSensitiveText } from "@/lib/analysis/redact";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -26,6 +28,8 @@ export async function POST(request: Request) {
     const inputResult = analyzeRequestSchema.safeParse(inputValue);
     if (!inputResult.success) return privateJson({ error: "Nội dung chưa đúng định dạng hoặc vượt giới hạn." }, 400);
     const input = inputResult.data;
+    if (input.includeJev && !isJevWebAvailable()) return privateJson({ error: "JEV hiện chưa được bật hoặc chưa sẵn sàng." }, 503);
+    if (input.includeJev && input.type === "image" && !input.confirmedOcr) return privateJson({ error: "Hãy đọc lại và xác nhận chữ OCR trước khi gửi phần văn bản ảnh tới JEV." }, 400);
 
     let hostname: string | undefined;
     const sourceId = randomUUID();
@@ -50,13 +54,40 @@ export async function POST(request: Request) {
 
     const ruleFindings = getRuleFindings(input);
     let modelReport: ModelReport;
+    let jevAssessment: Awaited<ReturnType<typeof analyzeWithJev>>["assessment"] | undefined;
     if (process.env.SCAMLENS_DEMO_MODE === "true") {
       modelReport = { summary: "Đây là báo cáo minh họa; AI chưa được gọi.", riskLevel: "insufficient", findings: ruleFindings, checklist: ["Không chuyển tiền hoặc gửi mã xác thực chỉ dựa trên nội dung này.", "Tự mở ứng dụng/kênh liên hệ chính thức để xác minh."], limitations: ["Chế độ demo dùng quy tắc mẫu, không gọi AI."] };
     } else {
       const quota = await takeQuota({ ip, userId: userState.user?.id, provider: "deepseek" });
       if (!quota.allowed) return privateJson({ error: quotaLimitMessage(quota), retryAfterSeconds: quota.retryAfterSeconds }, 429, { "Retry-After": String(quota.retryAfterSeconds) });
       const prompt = buildAnalysisPrompt({ type: input.type, content: source, context: input.context, sender: input.sender, replyTo: input.replyTo, subject: input.subject, ruleFindings });
-      modelReport = await analyzeWithDeepSeek(prompt);
+      let jevAvailability: "quota" | "provider_error" | undefined;
+      if (input.includeJev) {
+        try {
+          const jevQuota = await takeAdditionalProviderQuota("typesafe");
+          if (!jevQuota.allowed) jevAvailability = "quota";
+        } catch {
+          jevAvailability = "provider_error";
+        }
+      }
+      const jevInput = {
+        ...input,
+        content: redactSensitiveText(input.content),
+        context: redactSensitiveText(input.context),
+        sender: redactSensitiveText(input.sender),
+        replyTo: redactSensitiveText(input.replyTo),
+        subject: redactSensitiveText(input.subject),
+      };
+      const [deepseekResult, jevResult] = await Promise.all([
+        analyzeWithDeepSeek(prompt),
+        input.includeJev
+          ? jevAvailability
+            ? Promise.resolve({ assessment: { status: "unavailable" as const, reason: jevAvailability } })
+            : analyzeWithJev(jevInput).catch(() => ({ assessment: { status: "unavailable" as const, reason: "provider_error" as const } }))
+          : Promise.resolve(undefined),
+      ]);
+      modelReport = deepseekResult;
+      jevAssessment = jevResult?.assessment;
     }
 
     const merged = new Map<string, Finding>();
@@ -74,12 +105,14 @@ export async function POST(request: Request) {
       input.type === "email" ? "Header kỹ thuật email chưa được kiểm chứng từ hộp thư nguồn." : "Kết quả chỉ phản ánh phần nội dung bạn đã cung cấp.",
       input.type === "image" ? (input.confirmedOcr ? "Bản đọc ảnh đã được người dùng xác nhận; chưa xác minh tính thật của hình ảnh hay giao dịch." : "Bản đọc do AI trích xuất và chưa được người dùng xác nhận; hãy đối chiếu trực tiếp với ảnh. Chưa xác minh tính thật của hình ảnh hay giao dịch.") : "",
       droppedUnverified ? "Đã ẩn dấu hiệu AI nêu ra nhưng không tìm thấy nguyên văn trong nguồn." : "",
+      input.includeJev ? "JEV là lớp đánh giá tùy chọn; các tín hiệu JEV không thay đổi hoặc làm giảm mức cảnh báo từ báo cáo chính." : "",
     ].filter(Boolean))];
     const report = analysisReportSchema.parse({
       schemaVersion: "1.0", id: randomUUID(), createdAt: new Date().toISOString(), type: input.type, riskLevel,
       summary: modelReport.summary, findings, checklist: modelReport.checklist, limitations,
       source: { id: sourceId, content: source, confirmedOcr: input.confirmedOcr, hostname },
       model: { text: process.env.SCAMLENS_DEMO_MODE === "true" ? "demo-rules" : process.env.DEEPSEEK_MODEL || "unknown", image: input.type === "image" ? process.env.DEEPSEEK_MODEL : undefined },
+      ...(jevAssessment ? { jev: jevAssessment } : {}),
     });
     return privateJson({ report, demo: process.env.SCAMLENS_DEMO_MODE === "true", saved: false });
   } catch (error) {

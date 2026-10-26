@@ -1,12 +1,22 @@
 # Đặc tả PoC TypeSafe Jev
 
-Trạng thái: PoC chạy riêng; chưa tham gia API báo cáo hoặc giao diện người dùng. Đây là đặc tả cho bộ đánh giá kỹ thuật, không phải đặc tả mô hình rủi ro production.
+Trạng thái: benchmark PoC chạy riêng; bổ sung adapter web opt-in theo yêu cầu ngày 27-10-2026. Lượt gọi TypeSafe thật trên web vẫn bị khóa cho tới khi key bị lộ được thu hồi/thay thế và cờ cấu hình được bật. Đây không phải bằng chứng model đạt tiêu chí production.
 
 ## Mục tiêu và giới hạn
 
 PoC trả lời hai câu hỏi: (1) Jev phân biệt được yêu cầu hành động với nội dung phủ định, nhắc lại hoặc phòng tránh không? (2) Trích dẫn nguyên văn có hỗ trợ nhận định về nguồn không? So sánh Jev với quy tắc hiện tại; tùy chọn so sánh với pipeline DeepSeek hiện tại.
 
-Chỉ chạy trên dữ liệu tổng hợp. Không đổi API công khai, `analysisReportSchema`, UI, OCR, migration, database, report history hoặc logic `calculateRisk`. Không gửi ảnh hay URL qua provider: ảnh được mô phỏng dưới dạng OCR; URL chỉ parse bằng quy tắc hiện tại và nội dung mẫu không truy cập mạng.
+Riêng benchmark PoC chỉ chạy trên dữ liệu tổng hợp và không đổi API công khai, `analysisReportSchema`, UI, OCR, migration, database, report history hoặc logic `calculateRisk`. Phần web adapter opt-in được đặc tả riêng bên dưới; không gửi ảnh đến JEV, chỉ gửi OCR text đã che. URL chỉ được gửi dưới dạng văn bản để phân tích, không được truy cập mạng.
+
+## Hợp đồng tích hợp web (ngoài benchmark PoC)
+
+**WEB-01 — Quyền gọi.** `AnalyzeRequest.includeJev` mặc định `false`; chỉ người dùng bật checkbox mới yêu cầu gọi JEV. Server chỉ coi JEV sẵn sàng khi có `TYPESAFE_WEB_ENABLED=true`, `TYPESAFE_KEY_ROTATED=true`, API key hiện diện, model ghim `jev-1.14.0`, base URL HTTPS và không ở chế độ demo. `GET /api/health` chỉ trả boolean readiness, không trả cấu hình nhạy cảm.
+
+**WEB-02 — Dữ liệu.** Key chỉ nằm phía server. Request JEV dùng nội dung đã được che lần nữa ở server; không gửi nhãn benchmark hoặc ảnh và không truy cập URL. Với ảnh, UI và API yêu cầu người dùng xem/chỉnh sửa/xác nhận OCR trước khi gửi chữ sang JEV; kết quả vẫn phải ghi rõ giới hạn OCR. UI cho xem bản gửi và nhắc rằng tự động che không bảo đảm ẩn mọi dữ liệu cá nhân.
+
+**WEB-03 — Kết quả.** JEV hiển thị riêng sáu xác suất Noul và mức sufficiency. Quy tắc và DeepSeek tiếp tục tạo báo cáo chính; JEV không tạo finding, summary hay riskLevel và không thể hạ cảnh báo. Nếu provider lỗi hoặc chạm quota thì báo cáo chính vẫn trả về, kèm `jev.status=unavailable`.
+
+**WEB-04 — Chi phí và giới hạn.** Mỗi lựa chọn JEV thêm một request TypeSafe bên cạnh request DeepSeek hiện có. Chia sẻ quota actor/phút ScamLens, cộng trần provider `RATE_LIMIT_TYPESAFE_DAILY` (mặc định 30/ngày); không tự retry. Flag web tắt mặc định. Không bật live trong repo hiện tại trước khi thay key đã lộ.
 
 ## Hợp đồng đầu vào/đầu ra
 

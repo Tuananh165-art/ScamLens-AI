@@ -1,5 +1,38 @@
 # Cài đặt và chạy benchmark JEV
 
+## JEV trên giao diện web (tùy chọn, tắt mặc định)
+
+JEV hiện là lớp đối chiếu bổ sung cho báo cáo DeepSeek/quy tắc. Nó không tạo kết luận hay mức rủi ro riêng và không được dùng để hạ cảnh báo. Người dùng phải bật checkbox “Đối chiếu thêm bằng JEV”; giao diện nêu rõ phần nội dung nào sẽ gửi. Với ảnh, phải dùng quy trình từng bước và xác nhận OCR trước; chỉ OCR text đã che được gửi, không gửi ảnh. JEV được gọi ở server; key không được đưa vào browser.
+
+Để bật trên môi trường local sau khi thu hồi key đã lộ và thay key mới trực tiếp trong `.env`, đặt:
+
+```dotenv
+TYPESAFE_API_KEY=<key mới, chỉ lưu trong file local>
+TYPESAFE_BASE_URL=https://api.typesafe.ai
+TYPESAFE_MODEL=jev-1.14.0
+TYPESAFE_KEY_ROTATED=true
+TYPESAFE_WEB_ENABLED=true
+RATE_LIMIT_TYPESAFE_DAILY=30
+```
+
+Khởi động lại ứng dụng rồi kiểm tra `http://localhost:3000/api/health`; chỉ `services.jev: true` mới làm tùy chọn JEV khả dụng trên web. Không đặt cờ xác nhận xoay key thành `true` nếu chưa thực sự thay key. Nếu JEV chưa sẵn sàng, báo cáo chính vẫn hoạt động; khi JEV gặp lỗi/hết quota, báo cáo ghi trạng thái không hoàn tất.
+
+```powershell
+npm.cmd run dev
+```
+
+Trong giao diện, dùng tình huống mẫu tổng hợp trước. Rà soát “Xem nội dung sẽ gửi”, bật “Đối chiếu thêm bằng JEV”, rồi bấm Quét. Thẻ “Đối chiếu bổ sung từ JEV” hiển thị sáu tín hiệu, xác suất đầu ra và mức độ đủ dữ kiện. Xác suất `Noul` không phải xác suất kết luận lừa đảo trong thực tế. JEV không thay đổi mức rủi ro, dấu hiệu/căn cứ hay nội dung kết luận DeepSeek. Báo cáo có thể lưu cùng thông tin này nếu người dùng bấm lưu.
+
+Kiểm tra trạng thái không gửi nội dung: `GET /api/health`. Kiểm tra mã tích hợp bằng test có mock, không tốn phí:
+
+```powershell
+npm.cmd run test -- src/app/api/analyze/route.test.ts src/lib/ai/jev.test.ts
+```
+
+Chỉ sau khi key đã thay và giá/quota đã rà soát, mới chạy UI với dữ liệu tổng hợp để tạo lượt gọi live. Mỗi lần bật JEV sẽ gọi thêm một request TypeSafe cùng request DeepSeek vốn có; giới hạn Typesafe mặc định 30 lần/ngày, song song với quota actor của ScamLens. Không chạy bằng nội dung thật nếu chưa rà soát/được phép gửi.
+
+TypeSafe nói không dùng input để huấn luyện model; chính sách của họ nêu thời hạn lưu giữ phụ thuộc loại dữ liệu, thỏa thuận và thiết lập zero data retention. Zero data retention có thể cần thỏa thuận riêng. [Chính sách quyền riêng tư TypeSafe](https://typesafe.ai/legal/privacy-policy), [hướng dẫn xử lý/lưu dữ liệu](https://help.typesafe.ai/articles/5974925716-how-is-submitted-data-used-or-retained).
+
 PoC gửi dữ liệu tổng hợp đến TypeSafe khi dùng `--live`. Không dùng nội dung tin nhắn, email, URL hoặc ảnh thật của người dùng. Kết quả benchmark là kết quả thử nghiệm, không phải bằng chứng model phát hiện chính xác lừa đảo ngoài đời thực.
 
 ## 1. Bảo vệ key và cấu hình

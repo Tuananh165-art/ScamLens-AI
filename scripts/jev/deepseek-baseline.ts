@@ -21,6 +21,7 @@ function asAnalysisRequest(sample: BenchmarkSample): AnalyzeRequest {
     replyTo: sample.input.replyTo ?? "",
     subject: sample.input.subject ?? "",
     confirmedOcr: sample.input.type === "image",
+    includeJev: false,
   };
 }
 

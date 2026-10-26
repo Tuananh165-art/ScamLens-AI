@@ -11,6 +11,8 @@ const safeErrors: Record<string, { status: number; message: string }> = {
   deepseek_invalid_response: { status: 502, message: "AI chưa tạo được phản hồi hoàn chỉnh. Vui lòng thử lại." },
   deepseek_invalid_json: { status: 502, message: "AI chưa thể hoàn tất câu trả lời. Vui lòng thử lại." },
   deepseek_invalid_schema: { status: 502, message: "AI chưa tạo được kết quả theo định dạng cần thiết. Vui lòng thử lại sau ít phút." },
+  typesafe_not_configured: { status: 503, message: "JEV hiện chưa được cấu hình. Báo cáo chính vẫn dùng các dịch vụ đang bật." },
+  typesafe_model_mismatch: { status: 502, message: "JEV chưa trả về đúng phiên bản đã cấu hình. Báo cáo chính vẫn dùng các dịch vụ đang bật." },
   quota_unavailable: { status: 503, message: "Không xác nhận được giới hạn lượt dùng. Thử lại sau." },
   quota_exceeded: { status: 429, message: "Bạn đã dùng hết lượt phân tích hiện tại. Hãy thử lại vào ngày mai." },
   unauthenticated: { status: 401, message: "Hãy đăng nhập Google để dùng lịch sử phân tích." },
