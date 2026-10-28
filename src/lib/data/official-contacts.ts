@@ -1,0 +1,306 @@
+// Dữ liệu đầu mối liên hệ chính thống từ Bộ Công an & Tỉnh Đồng Nai
+// Trích xuất từ ScamLens_AI_Official_Dataset_2026-10-27.xlsx (Sheet 06_DAU_MOI_LIEN_HE)
+
+export interface OfficialContact {
+  agencyId: string;
+  region: string;
+  agencyName: string;
+  department: string;
+  scope: string;
+  phone: string;
+  email: string;
+  website: string;
+  address: string;
+  priority: string;
+  usageAdvice: string;
+  verifiedStatus: string;
+  sourceUrl: string;
+}
+
+export const officialContacts: OfficialContact[] = [
+  {
+    "agencyId": "AG001",
+    "region": "Đồng Nai",
+    "agencyName": "Công an thành phố Đồng Nai",
+    "department": "PA05 - Phòng An ninh mạng và PCTP sử dụng CNC",
+    "scope": "lừa đảo trực tuyến;chiếm tài khoản;đánh cắp dữ liệu;tấn công mạng",
+    "phone": "0251 3685134",
+    "email": "",
+    "website": "https://congan.dongnai.gov.vn",
+    "address": "161 Phạm Văn Thuận, phường Tam Hiệp, TP Đồng Nai",
+    "priority": "P1",
+    "usageAdvice": "liên hệ tư vấn và trình báo phù hợp",
+    "verifiedStatus": "Đã kiểm tra trang danh bạ",
+    "sourceUrl": "https://congan.dongnai.gov.vn/Pages/gioithieu.aspx?CatID=70"
+  },
+  {
+    "agencyId": "AG002",
+    "region": "Đồng Nai",
+    "agencyName": "Công an thành phố Đồng Nai",
+    "department": "Tiếp nhận tin báo tội phạm ANTT",
+    "scope": "lừa đảo;chiếm đoạt tài sản;đe dọa",
+    "phone": "0693 480182",
+    "email": "",
+    "website": "https://congan.dongnai.gov.vn",
+    "address": "161 Phạm Văn Thuận, phường Tam Hiệp, TP Đồng Nai",
+    "priority": "P1",
+    "usageAdvice": "tin báo tố giác",
+    "verifiedStatus": "Đã kiểm tra trang danh bạ",
+    "sourceUrl": "https://congan.dongnai.gov.vn/Pages/gioithieu.aspx?CatID=70"
+  },
+  {
+    "agencyId": "AG003",
+    "region": "Đồng Nai",
+    "agencyName": "Công an thành phố Đồng Nai",
+    "department": "Tin báo tội phạm kinh tế",
+    "scope": "kinh tế;tham nhũng;buôn lậu;môi trường",
+    "phone": "0693 480187",
+    "email": "",
+    "website": "https://congan.dongnai.gov.vn",
+    "address": "",
+    "priority": "P2",
+    "usageAdvice": "chuyên trách trường hợp tương ứng",
+    "verifiedStatus": "Đã kiểm tra trang danh bạ",
+    "sourceUrl": "https://congan.dongnai.gov.vn/Pages/gioithieu.aspx?CatID=70"
+  },
+  {
+    "agencyId": "AG004",
+    "region": "Đồng Nai",
+    "agencyName": "Công an thành phố Đồng Nai",
+    "department": "Văn phòng Cơ quan CSĐT",
+    "scope": "tiếp nhận/điều tra thông tin",
+    "phone": "0693 480999",
+    "email": "",
+    "website": "https://congan.dongnai.gov.vn",
+    "address": "",
+    "priority": "P2",
+    "usageAdvice": "hỏi hướng dẫn theo vụ việc",
+    "verifiedStatus": "Đã kiểm tra trang danh bạ",
+    "sourceUrl": "https://congan.dongnai.gov.vn/Pages/gioithieu.aspx?CatID=70"
+  },
+  {
+    "agencyId": "AG005",
+    "region": "Đồng Nai",
+    "agencyName": "Công an thành phố Đồng Nai",
+    "department": "Trực ban",
+    "scope": "trực ban chung",
+    "phone": "0693 480100",
+    "email": "congan@dongnai.gov.vn",
+    "website": "https://congan.dongnai.gov.vn",
+    "address": "161 Phạm Văn Thuận, phường Tam Hiệp, TP Đồng Nai",
+    "priority": "P1",
+    "usageAdvice": "đầu mối chung",
+    "verifiedStatus": "Đã kiểm tra trang danh bạ",
+    "sourceUrl": "https://congan.dongnai.gov.vn/Pages/gioithieu.aspx?CatID=70"
+  },
+  {
+    "agencyId": "AG006",
+    "region": "Đồng Nai",
+    "agencyName": "Công an thành phố Đồng Nai",
+    "department": "Phòng CSGT",
+    "scope": "thông tin giao thông;phạt nguội",
+    "phone": "0693 480204",
+    "email": "",
+    "website": "https://congan.dongnai.gov.vn",
+    "address": "",
+    "priority": "P2",
+    "usageAdvice": "xác minh thông tin giao thông",
+    "verifiedStatus": "Đã kiểm tra trang danh bạ",
+    "sourceUrl": "https://congan.dongnai.gov.vn/Pages/gioithieu.aspx?CatID=70"
+  },
+  {
+    "agencyId": "AG007",
+    "region": "Đồng Nai",
+    "agencyName": "Công an thành phố Đồng Nai",
+    "department": "Tiếp nhận phản ánh TTHC/cư trú",
+    "scope": "giả mạo CCCD;định danh;thủ tục hành chính",
+    "phone": "0251 3895261",
+    "email": "",
+    "website": "https://congan.dongnai.gov.vn",
+    "address": "",
+    "priority": "P2",
+    "usageAdvice": "hỏi hướng dẫn TTHC",
+    "verifiedStatus": "Đã kiểm tra trang danh bạ",
+    "sourceUrl": "https://congan.dongnai.gov.vn/Pages/gioithieu.aspx?CatID=70"
+  },
+  {
+    "agencyId": "AG008",
+    "region": "Đồng Nai",
+    "agencyName": "Công an thành phố Đồng Nai",
+    "department": "Phòng QLHC về TTXH - Căn cước",
+    "scope": "căn cước công dân",
+    "phone": "0251 3895172",
+    "email": "",
+    "website": "https://congan.dongnai.gov.vn",
+    "address": "",
+    "priority": "P2",
+    "usageAdvice": "xác minh quy trình cấp căn cước",
+    "verifiedStatus": "Đã kiểm tra trang danh bạ",
+    "sourceUrl": "https://congan.dongnai.gov.vn/Pages/gioithieu.aspx?CatID=70"
+  },
+  {
+    "agencyId": "AG009",
+    "region": "Đồng Nai",
+    "agencyName": "Công an thành phố Đồng Nai",
+    "department": "Phòng CSĐT tội phạm về trật tự xã hội",
+    "scope": "đe dọa/chiếm đoạt tài sản",
+    "phone": "0251 3895757",
+    "email": "",
+    "website": "https://congan.dongnai.gov.vn",
+    "address": "",
+    "priority": "P2",
+    "usageAdvice": "liên hệ theo phân công",
+    "verifiedStatus": "Đã kiểm tra trang danh bạ",
+    "sourceUrl": "https://congan.dongnai.gov.vn/Pages/gioithieu.aspx?CatID=70"
+  },
+  {
+    "agencyId": "AG010",
+    "region": "Đồng Nai",
+    "agencyName": "Công an cấp xã/phường nơi cư trú",
+    "department": "Trực tiếp tại cơ quan",
+    "scope": "mọi dấu hiệu tội phạm;đơn tố giác",
+    "phone": "",
+    "email": "",
+    "website": "",
+    "address": "",
+    "priority": "P1",
+    "usageAdvice": "tới công an gần nhất; không tự suy đoán số điện thoại xã/phường",
+    "verifiedStatus": "Được Bộ Công an hướng dẫn",
+    "sourceUrl": "https://bocongan.gov.vn/bai-viet/huong-dan-to-giac-bao-tin-ve-toi-pham-kien-nghi-khoi-to-d139-t35195"
+  },
+  {
+    "agencyId": "AG011",
+    "region": "Toàn quốc",
+    "agencyName": "Nhà băng đang sử dụng",
+    "department": "Tổng đài hỗ trợ chính thức trong app/thẻ ngân hàng",
+    "scope": "vừa chuyển tiền;nghi tài khoản bị lộ;khóa tài khoản",
+    "phone": "",
+    "email": "",
+    "website": "",
+    "address": "",
+    "priority": "P0",
+    "usageAdvice": "liên hệ ngân hàng qua ứng dụng/thẻ chính thức, không gọi số do đối tượng gửi",
+    "verifiedStatus": "Hướng dẫn phòng ngừa từ công an",
+    "sourceUrl": "https://congan.dongnai.gov.vn/Pages/newsdetail.aspx?CatId=109&NewsId=32280"
+  },
+  {
+    "agencyId": "AG012",
+    "region": "Toàn quốc",
+    "agencyName": "Hệ thống 156",
+    "department": "Phản ánh tin nhắn/cuộc gọi",
+    "scope": "cuộc gọi lừa đảo;tin nhắn rác;cuộc gọi rác",
+    "phone": "156",
+    "email": "",
+    "website": "",
+    "address": "",
+    "priority": "P2",
+    "usageAdvice": "phản ánh viễn thông, KHÔNG thay thế tố giác tội phạm",
+    "verifiedStatus": "Nguồn công bố lịch sử - kiểm tra trước deploy",
+    "sourceUrl": "https://mic.gov.vn/bo-tttt-trien-khai-tong-dai-156-tiep-nhan-phan-anh-tin-nhan-rac-cuoc-goi-rac-cuoc-goi-co-dau-hieu-lua-dao-197155742.htm"
+  },
+  {
+    "agencyId": "AG013",
+    "region": "Toàn quốc",
+    "agencyName": "Hệ thống 5656",
+    "department": "Phản ánh tin nhắn/cuộc gọi rác",
+    "scope": "SMS rác;cuộc gọi rác",
+    "phone": "5656",
+    "email": "",
+    "website": "",
+    "address": "",
+    "priority": "P3",
+    "usageAdvice": "tham khảo kênh được công bố trước đây, xác nhận còn hoạt động",
+    "verifiedStatus": "Nguồn lịch sử - kiểm tra trước deploy",
+    "sourceUrl": "https://mic.gov.vn/bo-tttt-trien-khai-tong-dai-156-tiep-nhan-phan-anh-tin-nhan-rac-cuoc-goi-rac-cuoc-goi-co-dau-hieu-lua-dao-197155742.htm"
+  },
+  {
+    "agencyId": "AG014",
+    "region": "Toàn quốc",
+    "agencyName": "VNNIC",
+    "department": "Cổng tra cứu tên miền",
+    "scope": "kiểm tra tên miền;nghi giả mạo website",
+    "phone": "",
+    "email": "",
+    "website": "https://tracuutenmien.gov.vn",
+    "address": "",
+    "priority": "P2",
+    "usageAdvice": "tra cứu tên miền; không xác minh website chắc chắn an toàn",
+    "verifiedStatus": "Nguồn VNNIC công bố",
+    "sourceUrl": "https://archive.vnnic.vn/tintuc/bo-thong-tin-va-truyen-thong-cong-bo-cong-tra-cuu-thong-tin-ten-mien?lang=en"
+  },
+  {
+    "agencyId": "AG015",
+    "region": "Toàn quốc",
+    "agencyName": "Bộ Công an",
+    "department": "VNeID - mục báo tin tội phạm",
+    "scope": "gửi tin tố giác theo chức năng có sẵn",
+    "phone": "",
+    "email": "",
+    "website": "https://bocongan.gov.vn",
+    "address": "",
+    "priority": "P1",
+    "usageAdvice": "chỉ mở ứng dụng VNeID chính chủ",
+    "verifiedStatus": "Bộ Công an xác nhận hình thức",
+    "sourceUrl": "https://bocongan.gov.vn/bai-viet/huong-dan-to-giac-bao-tin-ve-toi-pham-kien-nghi-khoi-to-d139-t35195"
+  },
+  {
+    "agencyId": "AG016",
+    "region": "TP.HCM",
+    "agencyName": "Công an TP.HCM",
+    "department": "Công an gần nhất hoặc đơn vị được hướng dẫn",
+    "scope": "lừa đảo chiếm đoạt;đe dọa",
+    "phone": "",
+    "email": "",
+    "website": "https://congan.hochiminhcity.gov.vn",
+    "address": "",
+    "priority": "P1",
+    "usageAdvice": "trình báo công an; không tự suy diễn số riêng",
+    "verifiedStatus": "Nguồn hướng dẫn cụ thể",
+    "sourceUrl": "https://tphcm.baochinhphu.vn/cong-an-tphcm-canh-bao-cac-hinh-thuc-lua-dao-tren-khong-gian-mang-dip-tet-nguyen-dan-2026-10126010819133672.htm"
+  },
+  {
+    "agencyId": "AG017",
+    "region": "TP.HCM",
+    "agencyName": "Công an TP.HCM",
+    "department": "Văn phòng Cơ quan CSĐT - riêng vụ hợp đồng kỳ nghỉ",
+    "scope": "chỉ người liên quan vụ hợp đồng kỳ nghỉ 2026",
+    "phone": "",
+    "email": "",
+    "website": "https://congan.hochiminhcity.gov.vn",
+    "address": "47 Thành Thái, phường Diên Hồng, TP.HCM",
+    "priority": "P2",
+    "usageAdvice": "CHỈ theo vụ việc cụ thể; không làm đầu mối mặc định cho mọi nạn nhân",
+    "verifiedStatus": "Thông tin vụ việc",
+    "sourceUrl": "https://baochinhphu.vn/cong-an-tphcm-khoi-to-11-vu-an-gan-200-bi-can-lua-dao-hop-dong-ky-nghi-102260619082635559.htm"
+  },
+  {
+    "agencyId": "AG018",
+    "region": "TP.HCM",
+    "agencyName": "Công an TP.HCM",
+    "department": "Phòng Cảnh sát hình sự - riêng vụ hợp đồng kỳ nghỉ",
+    "scope": "chỉ người liên quan vụ hợp đồng kỳ nghỉ 2026",
+    "phone": "",
+    "email": "",
+    "website": "https://congan.hochiminhcity.gov.vn",
+    "address": "459 Trần Hưng Đạo, phường Cầu Ông Lãnh, TP.HCM",
+    "priority": "P2",
+    "usageAdvice": "CHỈ theo vụ việc cụ thể",
+    "verifiedStatus": "Thông tin vụ việc",
+    "sourceUrl": "https://baochinhphu.vn/cong-an-tphcm-khoi-to-11-vu-an-gan-200-bi-can-lua-dao-hop-dong-ky-nghi-102260619082635559.htm"
+  },
+  {
+    "agencyId": "AG019",
+    "region": "TP.HCM",
+    "agencyName": "Công an TP.HCM",
+    "department": "Phòng Cảnh sát kinh tế - riêng vụ hợp đồng kỳ nghỉ",
+    "scope": "chỉ người liên quan vụ hợp đồng kỳ nghỉ 2026",
+    "phone": "",
+    "email": "",
+    "website": "https://congan.hochiminhcity.gov.vn",
+    "address": "14 Đoàn Như Hài, phường Xóm Chiếu, TP.HCM",
+    "priority": "P2",
+    "usageAdvice": "CHỈ theo vụ việc cụ thể",
+    "verifiedStatus": "Thông tin vụ việc",
+    "sourceUrl": "https://baochinhphu.vn/cong-an-tphcm-khoi-to-11-vu-an-gan-200-bi-can-lua-dao-hop-dong-ky-nghi-102260619082635559.htm"
+  }
+];

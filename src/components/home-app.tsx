@@ -608,9 +608,10 @@ function ReportView({ ref, report, signedIn, busy, onSave, onCopy, copied }: { r
             <div className="emergency-badge">🚨 HÀNH ĐỘNG KHẨN CẤP</div>
             <p>Nếu bạn đã lỡ chuyển tiền, nhấn vào liên kết lạ hoặc gửi mã OTP:</p>
             <div className="emergency-action-chips">
-              <span className="action-chip"><LockKeyhole size={14} /> Khóa tài khoản ngân hàng trên App</span>
-              <span className="action-chip"><PhoneCall size={14} /> Gọi tổng đài ngân hàng lập tức</span>
-              <span className="action-chip"><ExternalLink size={14} /> Báo cáo: canhbao.khonggianmang.vn</span>
+              <span className="action-chip"><LockKeyhole size={14} /> Khóa tài khoản trên App ngân hàng</span>
+              <a href="tel:02513685134" className="action-chip highlight-chip" title="Phòng An ninh mạng & PCTP sử dụng công nghệ cao - Công an tỉnh Đồng Nai"><PhoneCall size={14} /> PA05 Đồng Nai: 0251 3685134</a>
+              <a href="tel:156" className="action-chip" title="Tổng đài quốc gia tiếp nhận phản ánh cuộc gọi & tin nhắn lừa đảo"><PhoneCall size={14} /> Tổng đài 156</a>
+              <Link href="/guide#contacts" className="action-chip" title="Xem danh bạ chính thức và các kênh xác minh"><ExternalLink size={14} /> Xem danh bạ hỗ trợ</Link>
             </div>
           </div>
         )}
