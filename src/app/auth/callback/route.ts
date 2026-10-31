@@ -15,10 +15,10 @@ export async function GET(request: Request) {
     return response;
   }
   const supabase = await createSupabaseServerClient();
-  if (!code || !supabase) return finish("/?auth=error");
+  if (!code || !supabase) return finish("/analyze?auth=error");
   try {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
-    if (error) return finish("/?auth=error");
+    if (error) return finish("/analyze?auth=error");
     return finish(next);
-  } catch { return finish("/?auth=error"); }
+  } catch { return finish("/analyze?auth=error"); }
 }

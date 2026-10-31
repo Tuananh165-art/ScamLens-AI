@@ -108,3 +108,80 @@ Cập nhật: 22/10/2026
 7. `.gitignore` đã là file modified trước khi triển khai và không được sửa bởi thay đổi tính năng. Giữ nguyên để bảo toàn thay đổi có sẵn.
 
 Không có blocker kỹ thuật đang chặn lint, typecheck, unit, E2E, build hay smoke test. Các mục thủ công ở trên là xác minh nguồn dữ liệu, accessibility trên thiết bị và nghiệm thu dịch vụ thật.
+
+## Nghiệm thu nâng cấp theo `scamlen.txt` — 31/10/2026
+
+### Trạng thái theo checkpoint
+
+| Checkpoint | Trạng thái | Nội dung đã triển khai / còn lại |
+|---|---|---|
+| 1. Độ đúng và baseline | Hoàn tất trong phạm vi local | Luật nhận biết phủ định/cảnh báo và lời yêu cầu theo ngữ cảnh; xử lý tiếng Việt không dấu nhưng giữ vị trí trích dẫn gốc; URL chạy qua luật local ở mọi loại đầu vào; chỉ finding có bằng chứng hỗ trợ mới ảnh hưởng mức cảnh báo; OCR/analyze bỏ qua response cũ và thay đổi nội dung làm mất xác nhận. Lint đã bỏ qua artifact build/E2E. |
+| 2. Ba bước và quyền kiểm soát dữ liệu gửi | Hoàn tất trong giao diện/API local | Có luồng nhập → xem/sửa bản gửi → đọc báo cáo; che bắt buộc secret, tùy chọn PII; giữ miền email và số tiền; server che lại trước lưu/gọi AI; xác nhận OCR thủ công; trạng thái lưu và báo cáo/copy/in được chuẩn hóa. |
+| 3. Đối chiếu bằng chứng và tra cứu tùy chọn | Hoàn tất phần local/API; live chưa xác minh | Báo cáo tách tín hiệu local, DeepSeek và JEV; thêm kiểm tra bất nhất miền email; tích hợp rà soát thông tin biên lai OCR; API Web Risk yêu cầu URL riêng và đồng thuận, tắt mặc định, có timeout/quota, không fetch đích đáng ngờ, kết quả tách khỏi báo cáo lưu/xuất. Cần cấu hình và kiểm chứng Google Web Risk thật trước khi bật triển khai. |
+| 4. Landing và thư viện demo | Hoàn tất source và E2E Chromium | `/` là landing, `/analyze` là công cụ; giữ đường dẫn cũ `/#analyze` và luồng callback OAuth. Có 18 tình huống gồm 12 đáng ngờ, 4 bình thường và 2 thiếu thông tin; ID tám case trước được giữ; thông tin mô phỏng/nguồn/giới hạn hiển thị ngoài nội dung gửi phân tích. |
+| 5. Tích hợp, tài liệu và nghiệm thu | Hoàn tất kiểm tra local; còn nghiệm thu live/thủ công | Đã sửa nhãn benchmark JEV cho việc chỉ nhắc đến tổ chức; chạy lint, typecheck, unit/API, E2E và production build. Không thay schema hoặc dữ liệu Supabase. |
+
+### Bằng chứng kiểm tra lượt này
+
+- `npm.cmd run lint` — đạt.
+- `npm.cmd run typecheck` — đạt.
+- `npm.cmd test` — 23 file, 100 test đạt.
+- `npm.cmd run test:e2e` — 12 kịch bản Chromium đạt trên server/output cô lập; `.next-e2e` không dùng cổng hoặc tiến trình server đang phục vụ project.
+- `SCAMLENS_NEXT_DIST_DIR=.next-build npm.cmd run build` — production build đạt; Next biên dịch, kiểm tra TypeScript, sinh static pages và liệt kê route `/`, `/analyze`, `/api/analyze`, `/api/check-url` cùng các route hiện hữu. Các thay đổi tự sinh ở `tsconfig.json`/`next-env.d.ts` đã được hoàn nguyên về baseline.
+- `git diff --check` — đạt.
+- Bộ case hiện có 18 tình huống; kiểm tra UI và benchmark xác nhận các ví dụ bình thường không bị gán nhãn tự xưng cơ quan chỉ vì nội dung có nhắc tổ chức.
+
+### Giới hạn và việc cần xác minh riêng
+
+1. Chưa gọi DeepSeek, JEV, Google Web Risk hoặc Upstash thật trong nghiệm thu này; kết quả nhà cung cấp, quota thực và model trả về ngoài cấu hình mock chưa được xác nhận. Web Risk tiếp tục tắt mặc định (`WEBRISK_ENABLED=false`).
+2. Chưa kiểm thử OAuth, Supabase RLS/lưu lịch sử bằng tài khoản thật, dữ liệu production hoặc deployment đã publish; không có migration cơ sở dữ liệu.
+3. E2E chỉ xác nhận Chromium desktop giả lập các viewport. Chưa nghiệm thu trên thiết bị iOS/Android thật, VoiceOver/TalkBack hay audit tương phản WCAG chuyên dụng.
+4. Kiểm tra biên lai chỉ đối chiếu dữ liệu OCR đã xác nhận; không chứng minh giao dịch ngân hàng đã xảy ra. Bảng đối chiếu các engine cũng không phải xác minh danh tính hoặc xác suất lừa đảo.
+5. Case study là tình huống giả lập có tham khảo nguồn công khai; không trình bày như vụ án thật hoặc lời chứng thực. Kết quả local/E2E không chứng minh độ chính xác ngoài đời.
+6. Chưa triển khai đọc QR, hội thoại hỏi tiếp, sandbox website, ELA/điểm giả ảnh hay API VirusTotal/urlscan; các mục này ở roadmap sau.
+
+## Cải tiến JEV: mở rộng tín hiệu và trình bày kết quả — 31/10/2026
+
+- Đã mở rộng JEV web từ sáu lên chín câu hỏi Noul trong cùng một request: thêm yêu cầu giấy tờ định danh, cài ứng dụng/quyền điều khiển từ xa, và tách yêu cầu giữ bí mật khỏi tín hiệu thúc ép.
+- Định nghĩa ID, nhãn, nhóm và câu hỏi nằm chung tại `src/lib/ai/jev-signals.ts`; adapter web và benchmark dùng cùng taxonomy. Corpus thêm tình huống dương/đối chứng cho ba chiều mới; nhãn vẫn nằm ngoài payload model.
+- UI báo cáo nhóm chín tín hiệu theo yêu cầu và thủ thuật thuyết phục, vẽ mức đầu ra thực từ JEV, hiển thị độ đủ dữ kiện/độ tin cậy của đánh giá đó, thời gian/token response khi có. Khi context thiếu, nhãn âm được trình bày là chưa đủ ngữ cảnh thay vì gợi ý an toàn. Với loại URL, UI nói rõ JEV không tra cứu danh tiếng domain.
+- Schema mới chấp nhận 6–9 ID duy nhất để đọc report lịch sử sáu tín hiệu; các report mới mang đủ chín tín hiệu. Bản copy sử dụng nhãn dễ hiểu, metadata độ đủ dữ kiện và thời gian xử lý.
+- Xác minh: lint và typecheck đạt; 24 file/105 test đạt; production build đạt với `.next-build` cô lập; `git diff --check` đạt.
+- Chưa gọi JEV live và chưa chạy benchmark provider. Vì vậy chưa có bằng chứng rằng các chiều mới tăng độ chính xác thực tế; cần chạy benchmark dev/test trên fixture tổng hợp sau khi xác nhận cấu hình và ngân sách, rồi mới xem xét thay đổi ngưỡng. Các phần trăm UI là output per-question do model trả về, không phải xác suất lừa đảo.
+
+
+## Nâng cấp sau audit 24 ảnh — 31/10/2026
+
+Đã triển khai bốn nhóm được người dùng yêu cầu. Chi tiết tại [UPGRADE_FUNCTIONS_2026_10_31_VI.md](docs/UPGRADE_FUNCTIONS_2026_10_31_VI.md).
+
+- [x] Nhận diện OTP có “là”, số quốc tế +84, URL token; che lại bí mật mới nhập ở frontend và server.
+- [x] Registry miền có nguồn/phiên bản; sửa Techcombank .com; so miền email vẫn chạy sau che mailbox.
+- [x] Phân biệt lời khuyên/phủ định với yêu cầu; local nhận thêm chuyển khoản và thời hạn; không cắt mất phủ định của quote rồi nâng high.
+- [x] Bản gửi có đủ trường, sửa được, hiển thị bản cuối; local/AI/JEV dùng cùng nguồn chuẩn bị.
+- [x] Hủy/bỏ response đến muộn của phân tích/OCR/import, bảo vệ trạng thái save/copy.
+- [x] Web Risk gắn URL được tra cứu, hủy consent khi sửa, hết hạn, không nhận provider match đã hết hạn.
+- [x] Bảng local–AI–JEV có câu căn cứ, giải thích đọc được; gộp trùng vị trí; bỏ gauge lặp nhị phân; chi tiết JEV thu gọn.
+- [x] Cảnh báo OCR đúng loại; bộ nhãn/câu hỏi benchmark được rà, thêm đối chứng có tự xưng tổ chức hợp lệ; version 2026-10-31.3 và output benchmark tách theo phiên bản, ledger chi phí không reset.
+- [x] Nhánh kiểm tra claim–quote JEV giới hạn 3 claim, quota/timeout/fallback; mặc định tắt và không tự hạ cảnh báo chính.
+- [x] QR local bằng pixel của ảnh đã che, xác nhận chuyển sang preview; thử bằng QR PNG thật.
+- [x] Nhập .eml không render HTML/tải tracker/chạy file; giới hạn cả Content-Length và stream thực nhận.
+- [x] Hướng dẫn theo thao tác đã làm; chỉ giữ trạng thái trong phiên.
+
+Không thay đổi schema Supabase, không gọi provider live hoặc triển khai Vercel trong lượt này. Không coi test mock/synthetic là độ chính xác thực tế. Audit production dependencies còn báo Next.js 16.2.9, postcss và sharp thuộc nền hiện có; cần đợt nâng framework riêng và đánh giá mức ảnh hưởng.
+
+### Kết quả nghiệm thu tích hợp
+
+| Kiểm tra | Kết quả mới trong lượt triển khai |
+|---|---|
+| npm run lint | Qua, không warning source |
+| npm run typecheck | Qua |
+| npm run test | 123/123 test, 29 file |
+| npm run test:e2e -- --workers=3 | 15/15 Chromium |
+| SCAMLENS_NEXT_DIST_DIR=.next-build npm run build | Qua; có route /api/import-email |
+| QR và .eml | E2E dùng PNG QR thật, parser .eml thật; không gọi AI tự động |
+| PDF / responsive | PDF A4 nhiều trang, phần trích dẫn thu gọn vẫn hiện khi in; không tràn viewport tại 320/390px; có screenshot desktop/mobile |
+| Provider live / Supabase live / Vercel | Chưa chạy, không suy từ fixture thành live |
+
+Các file Next tự sửa (next-env.d.ts, tsconfig.json) đã được khôi phục nội dung ban đầu, không giữ các include trỏ vào artifact build/E2E; giữ cấu hình dev server. Bộ kiểm tra từng bị sandbox chặn spawn EPERM đã chạy thành công ngoài giới hạn tiến trình, không gọi provider live. Hai lỗi tìm thấy trong E2E mới đã sửa: parser chuẩn hóa tên hiển thị trong địa chỉ email, và QR phẳng cần nhánh pure-barcode sau detector hình học.
+
+Ảnh/PDF nghiệm thu nằm trong test-results/upgrade-evidence-and-layer-bbb5d-bile-and-print-across-pages-chromium/ (artifact bị bỏ qua bởi Git).

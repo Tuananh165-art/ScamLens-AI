@@ -34,4 +34,24 @@ describe("redactSensitiveText", () => {
   it("counts unique values using the same ordered rules as redaction", () => {
     expect(countSensitiveMatches("OTP: 123456, email linh@example.com, phone 0912345678")).toBe(3);
   });
+
+  it("preserves an email domain and payment amounts while masking the mailbox and phone", () => {
+    expect(redactSensitiveText("From: notice@bank-suspect.test, gọi 0912345678, phí 1.500.000 VND"))
+      .toBe("From: [PHẦN EMAIL ĐÃ CHE]@bank-suspect.test, gọi [SỐ ĐIỆN THOẠI ĐÃ CHE], phí 1.500.000 VND");
+  });
+
+  it("masks labeled citizen ID and account numbers without masking neighboring money values", () => {
+    expect(redactSensitiveText("CCCD: 012345678901; số tài khoản: 001234567890; nhận 1.500.000 đồng"))
+      .toBe("CCCD: [SỐ GIẤY TỜ ĐÃ CHE]; số tài khoản: [SỐ TÀI KHOẢN ĐÃ CHE]; nhận 1.500.000 đồng");
+  });
+
+  it("allows opting to keep email addresses and phone numbers but always masks credentials", () => {
+    expect(redactSensitiveText("mail linh@example.test, 0912345678, OTP: 123456", { email: false, phone: false, identity: true, account: true }))
+      .toBe("mail linh@example.test, 0912345678, OTP: [OTP ĐÃ CHE]");
+  });
+
+  it("allows keeping one sensitive value while keeping mandatory credentials masked", () => {
+    expect(redactSensitiveText("Email linh@example.test, gọi 0912345678, OTP 123456", { keepValues: ["linh", "0912345678"] }))
+      .toBe("Email linh@example.test, gọi 0912345678, OTP [OTP ĐÃ CHE]");
+  });
 });

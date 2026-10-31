@@ -21,7 +21,7 @@ Khởi động lại ứng dụng rồi kiểm tra `http://localhost:3000/api/he
 npm.cmd run dev
 ```
 
-Trong giao diện, dùng tình huống mẫu tổng hợp trước. Rà soát “Xem nội dung sẽ gửi”, bật “Đối chiếu thêm bằng JEV”, rồi bấm Quét. Thẻ “Đối chiếu bổ sung từ JEV” hiển thị sáu tín hiệu, xác suất đầu ra và mức độ đủ dữ kiện. Xác suất `Noul` không phải xác suất kết luận lừa đảo trong thực tế. JEV không thay đổi mức rủi ro, dấu hiệu/căn cứ hay nội dung kết luận DeepSeek. Báo cáo có thể lưu cùng thông tin này nếu người dùng bấm lưu.
+Trong giao diện, dùng tình huống mẫu tổng hợp trước. Rà soát “Xem nội dung sẽ gửi”, bật “Đối chiếu thêm bằng JEV”, rồi bấm Quét. Thẻ “Đối chiếu hành vi bằng JEV” nhóm chín hành vi thành yêu cầu thông tin/hành động và thủ thuật thuyết phục; hiển thị mức đủ dữ kiện, đầu ra theo từng câu hỏi, thời gian xử lý và token nếu có. Nếu dữ liệu thiếu, điểm thấp không được trình bày như một xác nhận an toàn. Xác suất `Noul` không phải xác suất kết luận lừa đảo trong thực tế. Với URL, JEV không tra cứu danh tiếng domain; dùng kiểm tra URL local hoặc Google Web Risk tùy chọn. JEV không thay đổi mức rủi ro, dấu hiệu/căn cứ hay nội dung kết luận DeepSeek. Báo cáo có thể lưu cùng thông tin này nếu người dùng bấm lưu.
 
 Kiểm tra trạng thái không gửi nội dung: `GET /api/health`. Kiểm tra mã tích hợp bằng test có mock, không tốn phí:
 

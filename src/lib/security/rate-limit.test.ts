@@ -72,7 +72,7 @@ describe("DeepSeek quota limits", () => {
     const result = await takeQuota({ ip: "203.0.113.8", provider: "deepseek" });
 
     expect(result).toMatchObject({ allowed: false, reason: "provider_daily", retryAfterSeconds: 43_200 });
-    expect(quotaLimitMessage(result)).toContain("hạn mức AI trong ngày");
+    expect(quotaLimitMessage(result)).toContain("hạn mức dịch vụ trong ngày");
   });
 
   it("applies an independent JEV daily provider cap without incrementing the user quota again", async () => {

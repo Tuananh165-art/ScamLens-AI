@@ -33,7 +33,7 @@ export async function runRulesBaseline(sample: BenchmarkSample): Promise<Evaluat
     ["requests_payment", "money_request"],
     ["uses_pressure", "urgency"],
     ["claims_authority", "impersonation"],
-  ].map(([signal, category]) => [signal, findings.some((finding) => finding.category === category) ? 1 : 0])) as Record<SignalId, number>;
+  ].map(([signal, category]) => [signal, findings.some((finding) => finding.category === category) ? 1 : 0])) as Partial<Record<SignalId, number>>;
   return {
     sampleId: sample.id,
     familyId: sample.familyId,

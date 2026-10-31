@@ -33,4 +33,4 @@ export async function proxy(request: NextRequest) {
   return response;
 }
 
-export const config = { matcher: ["/", "/history", "/api/reports/:path*"] };
+export const config = { matcher: ["/", "/analyze", "/history", "/api/reports/:path*"] };

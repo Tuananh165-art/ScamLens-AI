@@ -1,0 +1,27 @@
+- coi update đc thêm gì về detect, security như tool hay AI gì đó thêm, research repo dùng REA coi brainstorm tích hợp đc j thêm ko
+- lựa các prompt, example, case study hay để demo cho người dùng
+- update UI mang phong cách cyber security
+- Verify lại các tính năng
+- Brainstorm, analyst focus vào innovation coi có update đc feature j hay ko
+- làm landing page 
+- Thêm 1 layer tool ngoài llm, jev để verify, check, evaluation security
+- Tham khảo các repo GitHub về security, scam có AI càng tốt 
+- Chỉnh lại logic chức năng đã chuẩn xác chưa, có hợp lý ko
+- kiếm các case study demo optimize nhất
+- Tham khảo các công cụ tool, web, repo đã có trên thị trường cải tiến
+- Hướng phát triển thêm trong tương lai về công nghệ
+- Check logic, hay nghi ngờ những thứ chưa chuẩn
+- Dựa trên thực trạng, vấn nạn ở đồng nai, việt nam cũng như quốc tế để phát triển tính năng hợp lý
+- Các chức năng, feature hiện tại đã thực sự chạy đúng, chuẩn, và thực sự cần thiết cho người dùng
+- Đã tận dụng, phát huy được toàn bộ sức mạnh của api llm deepseek và jev system one model
+- Tìm, thêm các case study, prompt phổ thông, thực trạng người dùng thường gặp để build
+- số thứ tự đánh đúng 3 bước chính, đang chỉ có bước 1
+- lưu lịch sử phải thông báo hoàn tất
+- phân tích coi nút sao chép, in pdf có tác dụng gì, analyst lại
+- Kiểm tra check lại nút che thông tin nhạy cảm
+- Kiểm tra check lại các tình huống giả lập
+- xem noi dung se gui scan anh cho sua, con tin nhan chua cho sửa
+- highlight thông tin nhay cam hoac nut bat tat muon che ko che
+- Phần che email trong mục nhập Email có hơi thừa, AI cần phải nhận biết địa chỉ mail và thông tin trong thư để đưa ra đánh giá tổng quan.
+- Cần đánh giá lại mức độ quan trọng của các trường thông tin nhạy cảm như số điện thoại, cccd, email (một số người dùng muốn che hoặc không che mục này). 
+- Cần xem xét thêm nên cho lựa chọn che thủ công hoặc che tự động trong mục xem nội dung sẽ gửi. Vì một số trường thông tin thường thấy như địa chỉ mail , số điện thoại rác, ... Mới là yếu tố cốt lõi đánh giá xem tỉ lệ lừa đảo là bao nhiêu.

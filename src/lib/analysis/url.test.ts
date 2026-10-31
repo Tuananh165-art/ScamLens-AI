@@ -22,7 +22,8 @@ describe("inspectUrl", () => {
     expect(result.hasAbnormalPort).toBe(true);
     expect(result.nestedRedirectTarget).toBe("https://fake.example");
     expect(result.spoofedBrand).toBe("Vietcombank");
-    expect(result.signals).toHaveLength(4);
+    expect(result.signals).toHaveLength(5);
+    expect(result.isExample).toBe(true);
   });
 
   it("unwraps redirect destinations through multiple offline URL layers", () => {

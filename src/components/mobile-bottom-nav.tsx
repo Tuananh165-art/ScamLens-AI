@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { ThemeToggle } from "@/components/theme-toggle";
 
 const destinations = [
-  { href: "/#analyze", path: "/", label: "Soi rọi", icon: Shield },
+  { href: "/analyze", path: "/analyze", label: "Kiểm tra", icon: Shield },
   { href: "/guide", path: "/guide", label: "Tự vệ", icon: BookOpenText },
   { href: "/history", path: "/history", label: "Lịch sử", icon: Clock3 },
 ];

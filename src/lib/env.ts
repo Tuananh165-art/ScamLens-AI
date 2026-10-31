@@ -8,6 +8,7 @@ export function getHealthStatus() {
     history: Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY),
     sharedRateLimit: Boolean(process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN),
     jev: isJevWebAvailable(),
+    webRiskConfigured: process.env.WEBRISK_ENABLED === "true" && Boolean(process.env.WEBRISK_API_KEY?.trim()),
   };
 }
 

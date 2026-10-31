@@ -6,7 +6,7 @@ const localCounts = new Map<string, { count: number; expiresAt: number }>();
 const WINDOW_MINUTE = 60_000;
 
 type LimitReason = "per_minute" | "daily_actor" | "provider_daily";
-type Provider = "deepseek" | "typesafe";
+type Provider = "deepseek" | "typesafe" | "webrisk";
 export type LimitResult = { allowed: boolean; retryAfterSeconds: number; backend: "upstash" | "local"; reason?: LimitReason };
 
 export function quotaLimitMessage(result: LimitResult) {
@@ -14,7 +14,7 @@ export function quotaLimitMessage(result: LimitResult) {
     const seconds = Math.max(1, result.retryAfterSeconds);
     return `Bạn đã đạt giới hạn lượt trong một phút. Hãy thử lại sau khoảng ${seconds} giây.`;
   }
-  if (result.reason === "provider_daily") return "ScamLens đã đạt hạn mức AI trong ngày. Hãy thử lại sau khi quota được làm mới lúc 00:00 UTC.";
+  if (result.reason === "provider_daily") return "ScamLens đã đạt hạn mức dịch vụ trong ngày. Hãy thử lại sau khi quota được làm mới lúc 00:00 UTC.";
   return "Bạn đã dùng hết lượt hôm nay. Hãy thử lại sau khi quota được làm mới lúc 00:00 UTC.";
 }
 
@@ -23,7 +23,7 @@ function hashed(value: string) {
   return createHmac("sha256", secret).update(value).digest("hex").slice(0, 32);
 }
 
-export async function takeQuota(input: { ip: string; userId?: string; provider: "deepseek" }): Promise<LimitResult> {
+export async function takeQuota(input: { ip: string; userId?: string; provider: Provider }): Promise<LimitResult> {
   const minuteLimit = numberEnv("RATE_LIMIT_PER_MINUTE", 3);
   const dailyLimit = input.userId ? numberEnv("RATE_LIMIT_USER_DAILY", 20) : numberEnv("RATE_LIMIT_GUEST_DAILY", 5);
   const actor = input.userId ? `user:${input.userId}` : `guest:${input.ip}`;
@@ -47,7 +47,7 @@ export async function takeQuota(input: { ip: string; userId?: string; provider: 
       if (dailyCount > dailyLimit) return { allowed: false, retryAfterSeconds: dayResetSeconds, backend, reason: "daily_actor" };
       const providerCount = await redis.incr(providerKey);
       if (providerCount === 1) await redis.expire(providerKey, dayResetSeconds);
-      const providerCap = numberEnv("RATE_LIMIT_DEEPSEEK_DAILY", 30);
+      const providerCap = providerDailyCap(input.provider);
       if (providerCount > providerCap) return { allowed: false, retryAfterSeconds: dayResetSeconds, backend, reason: "provider_daily" };
       return { allowed: true, retryAfterSeconds: 0, backend };
     } catch {
@@ -71,7 +71,7 @@ export async function takeQuota(input: { ip: string; userId?: string; provider: 
   const daily = hitLocal(`daily:${dayBucket}:${actor}`, now, dayResetMilliseconds, dailyLimit);
   if (!daily.allowed) return { ...daily, retryAfterSeconds: Math.ceil(dayResetMilliseconds / 1000), backend, reason: "daily_actor" };
   const provider = hitLocal(`provider:${dayBucket}:${input.provider}`, now, dayResetMilliseconds,
-    numberEnv("RATE_LIMIT_DEEPSEEK_DAILY", 30));
+    providerDailyCap(input.provider));
   if (!provider.allowed) return { ...provider, retryAfterSeconds: Math.ceil(dayResetMilliseconds / 1000), backend, reason: "provider_daily" };
   return { ...provider, backend };
 }
@@ -83,8 +83,7 @@ export async function takeAdditionalProviderQuota(provider: Provider): Promise<L
   const now = Date.now();
   const dayBucket = new Date(now).toISOString().slice(0, 10);
   const dayResetSeconds = secondsUntilUtcReset(now);
-  const capName = provider === "typesafe" ? "RATE_LIMIT_TYPESAFE_DAILY" : "RATE_LIMIT_DEEPSEEK_DAILY";
-  const cap = numberEnv(capName, 30);
+  const cap = providerDailyCap(provider);
   const backend: "upstash" | "local" = redisConfigured() ? "upstash" : "local";
   if (process.env.NODE_ENV === "production" && backend === "local") throw new Error("quota_unavailable");
   if (backend === "upstash") {
@@ -104,6 +103,11 @@ export async function takeAdditionalProviderQuota(provider: Provider): Promise<L
   return result.allowed
     ? { ...result, backend }
     : { ...result, backend, reason: "provider_daily", retryAfterSeconds: dayResetSeconds };
+}
+
+function providerDailyCap(provider: Provider) {
+  const capName = provider === "typesafe" ? "RATE_LIMIT_TYPESAFE_DAILY" : provider === "webrisk" ? "RATE_LIMIT_WEBRISK_DAILY" : "RATE_LIMIT_DEEPSEEK_DAILY";
+  return numberEnv(capName, 30);
 }
 
 function secondsUntilUtcReset(now: number) {

@@ -1,13 +1,8 @@
-export const SIGNAL_IDS = [
-  "requests_credentials",
-  "requests_payment",
-  "uses_pressure",
-  "claims_authority",
-  "bypasses_official_channel",
-  "promises_guaranteed_return",
-] as const;
+import { JEV_SIGNAL_IDS, type JevSignalId } from "@/lib/ai/jev-signals";
 
-export type SignalId = (typeof SIGNAL_IDS)[number];
+export const SIGNAL_IDS = JEV_SIGNAL_IDS;
+
+export type SignalId = JevSignalId;
 export type Sufficiency = "usable" | "limited" | "unusable";
 export type EvidenceDecision = "supported" | "unsupported" | "insufficient";
 export type EvaluationSplit = "dev" | "test";

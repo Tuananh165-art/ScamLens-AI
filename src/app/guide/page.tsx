@@ -1,9 +1,8 @@
-import { ArrowLeft, ExternalLink, Globe, PhoneCall, ShieldAlert, ShieldCheck } from "lucide-react";
+import { ArrowLeft, ExternalLink, Globe, MapPin, PhoneCall, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { officialContacts } from "@/lib/data/official-contacts";
 import { verificationChannels } from "@/lib/data/verification-channels";
-import { emergencyPlaybooks } from "@/lib/data/playbooks";
 
 export default function GuidePage() {
   // Select top priority contacts: Dong Nai PA05, Tin bao ANTT, Hotline 156
@@ -45,16 +44,22 @@ export default function GuidePage() {
             <div key={c.agencyId} className={`guide-contact-card ${c.region === "Đồng Nai" ? "highlight" : ""}`}>
               <div className="guide-contact-header">
                 <span className="guide-contact-badge">{c.region}</span>
-                <span className="guide-contact-dept">{c.department}</span>
               </div>
-              <div className="guide-contact-title">{c.agencyName}</div>
-              <a href={`tel:${c.phone.replace(/\s+/g, "")}`} className="guide-contact-phone">
-                <PhoneCall size={15} /> {c.phone}
-              </a>
-              {c.address && <div className="guide-contact-address">📍 {c.address}</div>}
+              <h3 className="guide-contact-title">{c.department}</h3>
+              <p className="guide-contact-agency">{c.agencyName}</p>
+              {c.phone && (
+                <a href={`tel:${c.phone.replace(/\s+/g, "")}`} className="guide-contact-phone">
+                  <PhoneCall size={15} aria-hidden="true" /> <span>{c.phone}</span>
+                </a>
+              )}
+              {c.address && (
+                <div className="guide-contact-address">
+                  <MapPin size={14} aria-hidden="true" /> <span>{c.address}</span>
+                </div>
+              )}
               {c.website && (
-                <a href={c.website} target="_blank" rel="noreferrer" className="text-xs text-muted inline-flex items-center gap-1 mt-1">
-                  <Globe size={13} /> {c.website.replace("https://", "")}
+                <a href={c.website} target="_blank" rel="noreferrer" className="guide-contact-website">
+                  <Globe size={14} aria-hidden="true" /> <span>{c.website.replace("https://", "")}</span><ExternalLink size={12} aria-hidden="true" />
                 </a>
               )}
             </div>

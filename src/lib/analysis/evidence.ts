@@ -1,4 +1,5 @@
 import type { Finding } from "./schema";
+import { isRequestDenial } from "./rules";
 
 export type VerifiedFinding = Finding & {
   evidenceRefs: Array<{ sourceId: string; quote: string; start: number; end: number; confirmedByUser: boolean }>;
@@ -23,6 +24,15 @@ export function attachVerifiedEvidence(findings: Finding[], sourceId: string, so
 
     if (start < 0 || end <= start || end > source.length) return [];
     const exactSourceQuote = source.slice(start, end);
+    if (finding.category === "secret_request" || finding.category === "money_request") {
+      const before = source.slice(0, start);
+      const boundary = Math.max(...[".", "!", "?", ";", ",", "\n"].map(char => before.lastIndexOf(char)));
+      const followingBoundary = source.slice(end).search(/[.!?;,\n]/u);
+      const clause = source.slice(boundary + 1, followingBoundary < 0 ? source.length : end + followingBoundary);
+      // Do not allow a clipped quotation to invert an explicit safety warning.
+      // Mixed contrast clauses remain for contextual review instead of blanket rejection.
+      if (!/\b(?:nhưng|tuy nhiên|mặt khác)\b/iu.test(clause) && isRequestDenial(clause)) return [];
+    }
     return [{ ...finding, evidenceRefs: [{ sourceId, quote: exactSourceQuote, start, end, confirmedByUser: confirmedOcr }] }];
   });
 }

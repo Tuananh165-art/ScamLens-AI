@@ -31,13 +31,16 @@ export async function POST(request: Request) {
     if (!parsed.success) return privateJson({ error: "Báo cáo không đúng định dạng." }, 400);
     const report = parsed.data;
     if (Buffer.byteLength(JSON.stringify(report), "utf8") > 48_000) return privateJson({ error: "Báo cáo vượt giới hạn lưu." }, 413);
+    const existing = await auth.client.from("analysis_reports").select("id").eq("id", report.id).maybeSingle();
+    if (existing.error) return privateJson({ error: "Không thể kiểm tra trạng thái lưu báo cáo." }, 503);
+    if (existing.data?.id) return privateJson({ id: report.id, saved: true, alreadySaved: true });
     const title = `${label(report.type)} · ${report.riskLevel}`.slice(0, 160);
     const { error } = await auth.client.from("analysis_reports").insert({
       id: report.id, user_id: auth.user.id, schema_version: report.schemaVersion,
       input_type: report.type, risk_level: report.riskLevel, title, report,
     });
     if (error) return privateJson({ error: "Không lưu được báo cáo. Kiểm tra migration và chính sách RLS." }, 503);
-    return privateJson({ id: report.id, saved: true }, 201);
+    return privateJson({ id: report.id, saved: true }, 200);
   } catch { return privateJson({ error: "Yêu cầu không đúng định dạng." }, 400); }
 }
 

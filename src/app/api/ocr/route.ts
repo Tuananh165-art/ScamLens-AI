@@ -3,6 +3,7 @@ import { publicError } from "@/lib/ai/errors";
 import { quotaLimitMessage, takeQuota } from "@/lib/security/rate-limit";
 import { getAuthenticatedUser } from "@/lib/supabase/server";
 import { privateJson } from "@/lib/http";
+import { reviewReceiptData } from "@/lib/analysis/receipt";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -24,7 +25,8 @@ export async function POST(request: Request) {
     const quota = await takeQuota({ ip, userId: userState.user?.id, provider: "deepseek" });
     if (!quota.allowed) return privateJson({ error: quotaLimitMessage(quota), retryAfterSeconds: quota.retryAfterSeconds }, 429, { "Retry-After": String(quota.retryAfterSeconds) });
     const result = await readImage(bytes, mime);
-    return privateJson({ ...result, source: "deepseek-image-read", confirmedByUser: false });
+    const receiptNotes = result.structuredData ? reviewReceiptData(result.structuredData, result.text) : [];
+    return privateJson({ ...result, notes: [...new Set([...result.notes, ...receiptNotes])], source: "deepseek-image-read", confirmedByUser: false });
   } catch (error) {
     if (error instanceof TypeError && /formData/i.test(error.message)) return privateJson({ error: "Gửi ảnh dưới dạng multipart/form-data." }, 400);
     const safe = publicError(error);

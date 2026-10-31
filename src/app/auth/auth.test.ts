@@ -45,7 +45,7 @@ describe("Google OAuth and logout routes", () => {
   });
   it("does not render an old session as a successful login after code exchange fails", async () => {
     mocks.exchange.mockResolvedValue({ error: { message: "invalid verifier" } });
-    expect((await callback(new Request(`${origin}/auth/callback?code=fake`))).headers.get("location")).toBe(`${origin}/?auth=error`);
+    expect((await callback(new Request(`${origin}/auth/callback?code=fake`))).headers.get("location")).toBe(`${origin}/analyze?auth=error`);
   });
   it("logs out locally and returns to home on the current alias", async () => {
     const response = await logout(new Request(`${origin}/auth/logout`, { method: "POST", headers: { origin } }));

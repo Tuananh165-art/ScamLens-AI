@@ -19,6 +19,6 @@ test("same-origin guest logout works and foreign-origin logout is rejected", asy
 });
 
 test("OAuth failure is visible to the user", async ({ page }) => {
-  await page.goto("/?auth=error");
+  await page.goto("/analyze?auth=error");
   await expect(page.getByRole("alert").filter({ hasText: "Chưa hoàn tất đăng nhập Google" })).toBeVisible();
 });

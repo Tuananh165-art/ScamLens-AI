@@ -11,6 +11,6 @@ export default defineConfig({
     url: "http://localhost:3187",
     reuseExistingServer: false,
     timeout: 120_000,
-    env: { NEXT_PUBLIC_SUPABASE_URL: "", NEXT_PUBLIC_SUPABASE_ANON_KEY: "" },
+    env: { NEXT_PUBLIC_SUPABASE_URL: "", NEXT_PUBLIC_SUPABASE_ANON_KEY: "", SCAMLENS_NEXT_DIST_DIR: ".next-e2e" },
   },
 });

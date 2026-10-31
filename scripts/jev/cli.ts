@@ -1,3 +1,5 @@
+import { JEV_CORPUS_VERSION } from "./corpus";
+import { JEV_QUESTION_VERSION } from "../../src/lib/ai/jev-signals";
 import { loadEnvConfig } from "@next/env";
 import { open, mkdir, readFile, rename, unlink, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
@@ -12,7 +14,7 @@ loadEnvConfig(process.cwd());
 
 const OUT = join(process.cwd(), ".jev-local");
 const LEDGER = join(OUT, "ledger.json");
-const RESULTS = join(OUT, "results.json");
+const RESULTS = join(OUT, "results-" + JEV_CORPUS_VERSION + "-" + JEV_QUESTION_VERSION + ".json");
 const MODEL = process.env.TYPESAFE_MODEL?.trim() || "jev-1.14.0";
 type Task = "all" | "signals" | "evidence";
 type CliOptions = { command: "dry-run" | "smoke" | "eval" | "report"; split: EvaluationSplit; task: Task; live: boolean; deepseekLive: boolean; limit?: number };
@@ -225,7 +227,7 @@ async function liveEvaluation(options: CliOptions) {
 
 async function report() {
   const results = await readResults();
-  const reportData: Record<string, unknown> = { version: 1, generatedAt: new Date().toISOString(), model: MODEL, threshold: 0.8, splits: {} };
+  const reportData: Record<string, unknown> = { version: 1, corpusVersion: JEV_CORPUS_VERSION, questionVersion: JEV_QUESTION_VERSION, generatedAt: new Date().toISOString(), model: MODEL, threshold: 0.8, splits: {} };
   for (const split of ["dev", "test"] as const) {
     const splitResults = results.filter((record) => record.split === split);
     const providers: Record<string, unknown> = {};
@@ -237,7 +239,7 @@ async function report() {
         ...summarize(records),
         signals: evaluateSignals(samples, records.filter((record) => record.signals), 0.8),
         evidence: evaluateEvidence(pairs, records),
-        limitations: provider === "typesafe" ? [] : ["Legacy baselines expose four of the six semantic indicators; remaining signals are reported as unavailable."],
+        limitations: provider === "typesafe" ? [] : ["Local baselines expose four of the nine semantic indicators; other signals are reported as unavailable."],
       };
     }
     (reportData.splits as Record<string, unknown>)[split] = { count: splitResults.length, providers };

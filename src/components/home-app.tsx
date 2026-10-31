@@ -5,17 +5,25 @@ import Link from "next/link";
 import Image from "next/image";
 import {
   ArrowRight, ArrowUpRight, BadgeCheck, Check,
-  ChevronDown, CircleHelp, Clock3, Copy, ExternalLink, FileImage, FileText, Fingerprint,
-  Link2, LoaderCircle, LockKeyhole, Mail, MessageCircle, PhoneCall,
+  ChevronDown, CircleHelp, Clock3, Copy, FileImage, FileText, Fingerprint,
+  Link2, LoaderCircle, LockKeyhole, Mail, MessageCircle,
   Shield, ShieldAlert, ShieldCheck, Sparkles, TriangleAlert, Zap,
 } from "lucide-react";
 import { ImageRedactor } from "@/components/image-redactor";
 import { JevAssessmentCard } from "@/components/jev-assessment-card";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { LogoutButton } from "@/components/logout-button";
-import { redactSensitiveText } from "@/lib/analysis/redact";
+import { redactSensitiveText, type RedactionPreferences } from "@/lib/analysis/redact";
+import { EvidenceComparison, EvidenceFindings } from "@/components/evidence-report";
+import { ExternalUrlCheck } from "@/components/external-url-check";
+import { ResponseActions } from "@/components/response-actions";
+import { displayFindings } from "@/lib/analysis/report-presentation";
+import { comparisonRows } from "@/lib/analysis/comparison";
+import { SourceReview } from "@/components/source-review";
+import { EMPTY_FIELDS, prepareSource, type SourceFields } from "@/lib/analysis/payload";
 import { demoCaseStudies } from "@/lib/analysis/case-studies";
 import { detectLiveHeuristics } from "@/lib/analysis/heuristics";
+import { JEV_SIGNAL_DEFINITIONS } from "@/lib/ai/jev-signals";
 import type { AnalysisReport, AnalyzeRequest } from "@/lib/analysis/schema";
 
 type InputType = "message" | "email" | "image" | "url";
@@ -40,18 +48,31 @@ export function HomeApp({ signedIn, email, avatarUrl, authConfigured, authError 
   const [subject, setSubject] = useState("");
   const [report, setReport] = useState<AnalysisReport | null>(null);
   const [jevAvailable, setJevAvailable] = useState(false);
+  const [webRiskConfigured, setWebRiskConfigured] = useState(false);
   const [useJev, setUseJev] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [ocrBusy, setOcrBusy] = useState(false);
+  const [importBusy, setImportBusy] = useState(false);
+  const [importNotes, setImportNotes] = useState<string[]>([]);
   const [feedback, setFeedback] = useState<Feedback>(null);
+  const [saveFeedback, setSaveFeedback] = useState<Feedback>(null);
   const [copied, setCopied] = useState(false);
   const [redactedImage, setRedactedImage] = useState<File | null>(null);
   const [ocrText, setOcrText] = useState("");
+  const [ocrNotes, setOcrNotes] = useState<string[]>([]);
   const [ocrConfirmed, setOcrConfirmed] = useState(false);
   const [imageStep, setImageStep] = useState<"select" | "reading" | "confirmed">("select");
   const [imageMode, setImageMode] = useState<"quick" | "step">("quick");
+  const requestVersion = useRef(0);
+  const requestAbort = useRef<AbortController | null>(null);
+  useEffect(() => () => { requestVersion.current++; requestAbort.current?.abort(); }, []);
+  const [redactionPreferences, setRedactionPreferences] = useState<RedactionPreferences>({});
+  const [preparedContent, setPreparedContent] = useState<{ key: string; fields: SourceFields }>({ key: "", fields: EMPTY_FIELDS });
   const reportRef = useRef<HTMLElement>(null);
   const demoPickerRef = useRef<HTMLDivElement>(null);
   const [isDemoDropdownOpen, setIsDemoDropdownOpen] = useState(false);
+  const [selectedDemo, setSelectedDemo] = useState<(typeof demoCaseStudies)[number] | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -60,6 +81,7 @@ export function HomeApp({ signedIn, email, avatarUrl, authConfigured, authError 
       .then((body) => {
         if (!active) return;
         const available = body?.services?.jev === true;
+        setWebRiskConfigured(body?.services?.webRiskConfigured === true);
         setJevAvailable(available);
         if (!available) setUseJev(false);
       })
@@ -87,41 +109,71 @@ export function HomeApp({ signedIn, email, avatarUrl, authConfigured, authError 
       return () => window.clearTimeout(timer);
     }
   }, [report]);
-  const redactedPayload = useMemo(() => ({
-    content: redactSensitiveText(content),
-    context: redactSensitiveText(context),
-    sender: redactSensitiveText(sender),
-    replyTo: redactSensitiveText(replyTo),
-    subject: redactSensitiveText(subject),
-  }), [content, context, sender, replyTo, subject]);
-  const liveSourceText = [content, context, sender, replyTo, subject].filter(Boolean).join("\n");
-  const liveSignals = useMemo(() => detectLiveHeuristics(liveSourceText), [liveSourceText]);
+  const originalFields = useMemo(() => ({ content: type === "image" ? ocrText : content, context, sender, replyTo, subject }), [type, ocrText, content, context, sender, replyTo, subject]);
+  const preparationKey = JSON.stringify([originalFields, redactionPreferences]);
+  const redactedPayload = useMemo(() => prepareSource(originalFields, redactionPreferences), [originalFields, redactionPreferences]);
+  const draftFields = preparedContent.key === preparationKey ? preparedContent.fields : redactedPayload;
+  const outgoingPayload = useMemo(() => prepareSource(draftFields, redactionPreferences), [draftFields, redactionPreferences]);
+  const liveSignals = useMemo(() => detectLiveHeuristics({ ...outgoingPayload, type, confirmedOcr: type === "image" && ocrConfirmed, includeJev: false }), [outgoingPayload, type, ocrConfirmed]);
+  function editPrepared(key: keyof SourceFields, value: string) {
+    invalidateAnalysis();
+    if (type === "image") { setOcrConfirmed(false); setUseJev(false); }
+    setPreparedContent({ key: preparationKey, fields: { ...draftFields, [key]: value } });
+  }
+  function changePreferences(value: RedactionPreferences) {
+    invalidateAnalysis();
+    const nextBase = prepareSource(originalFields, value);
+    const fields = Object.fromEntries((Object.keys(EMPTY_FIELDS) as Array<keyof SourceFields>).map(key => [key, draftFields[key] === redactedPayload[key] ? nextBase[key] : draftFields[key]])) as SourceFields;
+    setPreparedContent({ key: JSON.stringify([originalFields, value]), fields });
+    setRedactionPreferences(value);
+    if (type === "image") { setOcrConfirmed(false); setUseJev(false); }
+  }
+
+  const sourceReview = <SourceReview type={type} original={originalFields} draft={draftFields} prepared={outgoingPayload} preferences={redactionPreferences} onPreferencesChange={changePreferences} onChange={editPrepared} />;
   const [settledSignals, setSettledSignals] = useState(liveSignals);
   useEffect(() => {
     const timeout = window.setTimeout(() => setSettledSignals(liveSignals), 150);
     return () => window.clearTimeout(timeout);
   }, [liveSignals]);
   const canAnalyze = type === "image"
-    ? (imageMode === "quick" ? Boolean(redactedImage) : (Boolean(ocrText.trim()) && ocrConfirmed))
-    : Boolean(content.trim());
+    ? (imageMode === "quick" ? Boolean(redactedImage) : (Boolean(outgoingPayload.content.trim()) && ocrConfirmed))
+    : Boolean(outgoingPayload.content.trim());
 
   function switchType(next: InputType) {
+    invalidateAnalysis();
+    setPreparedContent({ key: "", fields: EMPTY_FIELDS });
+    setSelectedDemo(null);
+    setImportNotes([]); setImportBusy(false);
     setType(next); setContent(""); setSender(""); setReplyTo(""); setSubject(""); setContext("");
     setReport(null); setFeedback(null); setRedactedImage(null); setUseJev(false);
     setOcrText(""); setOcrConfirmed(false); setImageStep("select"); setImageMode("quick");
+    setOcrNotes([]);
+  }
+
+  function invalidateAnalysis() {
+    requestVersion.current += 1;
+    requestAbort.current?.abort();
+    setBusy(false); setSaving(false); setOcrBusy(false); setImportBusy(false);
+    setImageStep(current => current === "reading" ? "select" : current);
+    setReport(null); setCopied(false); setSaveFeedback(null);
+    setFeedback(null);
   }
 
   function loadDemo(caseItem?: (typeof demoCaseStudies)[0]) {
+    invalidateAnalysis();
+    setPreparedContent({ key: "", fields: EMPTY_FIELDS }); setImportNotes([]);
     const item = caseItem ?? demoCaseStudies[0];
+    setSelectedDemo(item);
     setUseJev(false);
+    setOcrNotes([]);
     setType(item.type);
     setRedactedImage(null);
     setContent(item.content); setSender(item.sender ?? ""); setReplyTo(item.replyTo ?? ""); setSubject(item.subject ?? "");
-    setContext("Tình huống tổng hợp giả lập để trình diễn; không phải vụ việc đã xác minh.");
+    setContext("");
     setReport(null);
     if (item.type === "image") {
       setOcrText(item.content);
-      setOcrConfirmed(true);
+      setOcrConfirmed(false);
       setImageStep("confirmed");
       setImageMode("step");
       setFeedback({ kind: "info", text: `Đã nạp tình huống mẫu: "${item.label}". Bấm Quét để chạy AI hoặc bật Chế độ demo trong .env.` });
@@ -130,75 +182,113 @@ export function HomeApp({ signedIn, email, avatarUrl, authConfigured, authError 
     setIsDemoDropdownOpen(false);
   }
 
+  async function importEmail(file: File) {
+    if (!file.name.toLowerCase().endsWith(".eml") || file.size > 2 * 1024 * 1024) { setFeedback({ kind: "error", text: "Chọn tệp .eml tối đa 2 MiB." }); return; }
+    invalidateAnalysis(); setImportBusy(true); setImportNotes([]);
+    setPreparedContent({ key: "", fields: EMPTY_FIELDS });
+    const version = requestVersion.current;
+    const controller = new AbortController(); requestAbort.current = controller;
+    try {
+      const response = await fetch("/api/import-email", { method: "POST", headers: { "Content-Type": "message/rfc822" }, body: file, signal: controller.signal, cache: "no-store" });
+      const body = await response.json();
+      if (version !== requestVersion.current) return;
+      if (!response.ok) throw new Error(body.error || "Không đọc được thư.");
+      setSender(body.sender); setReplyTo(body.replyTo); setSubject(body.subject); setContent(body.content); setContext("");
+      setImportNotes([...(body.notes ?? []), ...(body.attachments ?? []).map((item: { name: string; size: number }) => "Tệp đính kèm chưa phân tích: " + item.name + " (" + item.size + " byte)")]);
+      setFeedback({ kind: "info", text: "Đã điền nội dung từ .eml. Hãy kiểm tra bản gửi trước khi phân tích; chưa gọi AI." });
+    } catch (error) { if (version === requestVersion.current) setFeedback({ kind: "error", text: error instanceof Error ? error.message : "Không đọc được thư." }); }
+    finally { if (version === requestVersion.current) setImportBusy(false); }
+  }
+
   async function readImageOcr() {
     if (!redactedImage) return;
-    setImageStep("reading");
+    requestAbort.current?.abort();
+    const controller = new AbortController(); requestAbort.current = controller;
+    const version = ++requestVersion.current;
+    setImageStep("reading"); setOcrBusy(true);
     setFeedback(null);
     try {
       const form = new FormData();
       form.set("image", redactedImage);
-      const ocrResponse = await fetch("/api/ocr", { method: "POST", body: form, cache: "no-store" });
+      const ocrResponse = await fetch("/api/ocr", { method: "POST", body: form, cache: "no-store", signal: controller.signal });
       const ocrResult = await ocrResponse.json();
+      if (version !== requestVersion.current) return;
       if (!ocrResponse.ok) throw new Error(ocrResult.error || "Không đọc được ảnh.");
       const text = String(ocrResult.text ?? "").trim();
       if (!text) throw new Error("Chưa đọc được chữ trong ảnh. Hãy chọn ảnh rõ hơn rồi thử lại.");
+      setPreparedContent({ key: "", fields: EMPTY_FIELDS });
       setOcrText(text);
+      setOcrNotes(extractOcrNotes(ocrResult));
       setImageStep("confirmed");
-      setOcrConfirmed(true);
-      setFeedback({ kind: "info", text: "Đã đọc xong chữ trong ảnh. Bạn có thể xem lại hoặc sửa nếu cần." });
+      setOcrConfirmed(false);
+      setFeedback({ kind: "info", text: "Đã đọc xong chữ. Hãy đối chiếu với ảnh và tự xác nhận trước khi phân tích." });
     } catch (err) {
+      if (version !== requestVersion.current) return;
       setImageStep("select");
       setFeedback({ kind: "error", text: err instanceof Error ? err.message : "Không đọc được ảnh." });
-    }
+    } finally { if (version === requestVersion.current) setOcrBusy(false); }
   }
 
   async function analyze() {
     if (!canAnalyze) return;
+    requestAbort.current?.abort();
+    const controller = new AbortController(); requestAbort.current = controller;
+    const version = ++requestVersion.current;
     setBusy(true); setFeedback(null); setReport(null);
     try {
       let analysisContent = ocrText;
+      let analysisOcrNotes = ocrNotes;
       let confirmedOcr = ocrConfirmed;
       if (type === "image" && imageMode === "quick" && redactedImage) {
         setImageStep("reading");
         const form = new FormData(); form.set("image", redactedImage);
-        const ocrResponse = await fetch("/api/ocr", { method: "POST", body: form, cache: "no-store" });
+        const ocrResponse = await fetch("/api/ocr", { method: "POST", body: form, cache: "no-store", signal: controller.signal });
         const ocrResult = await ocrResponse.json();
+        if (version !== requestVersion.current) return;
         if (!ocrResponse.ok) throw new Error(ocrResult.error || "Không đọc được ảnh.");
         if (!String(ocrResult.text ?? "").trim()) throw new Error("AI chưa đọc được nội dung trong ảnh. Hãy chọn ảnh rõ hơn rồi thử lại.");
         analysisContent = String(ocrResult.text);
+        analysisOcrNotes = extractOcrNotes(ocrResult);
+        setOcrNotes(analysisOcrNotes);
         confirmedOcr = false;
-        setOcrText(analysisContent); setOcrConfirmed(false); setImageStep("select");
+        setPreparedContent({ key: "", fields: EMPTY_FIELDS }); setOcrText(analysisContent); setOcrConfirmed(false); setImageStep("confirmed");
       }
       const body: AnalyzeRequest = {
-        type, content: type === "image" ? redactSensitiveText(analysisContent) : redactedPayload.content,
-        context: redactedPayload.context, sender: redactedPayload.sender, replyTo: redactedPayload.replyTo, subject: redactedPayload.subject,
+        type, ...outgoingPayload,
+        ...(type === "image" && imageMode === "quick" ? prepareSource({ ...outgoingPayload, content: analysisContent }, redactionPreferences) : {}),
         confirmedOcr: type === "image" && confirmedOcr,
         includeJev: useJev,
+        redactionPreferences,
       };
-      const response = await fetch("/api/analyze", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), cache: "no-store" });
+      const response = await fetch("/api/analyze", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), cache: "no-store", signal: controller.signal });
       const result = await response.json();
+      if (version !== requestVersion.current) return;
       if (!response.ok) throw new Error(result.error || "Không phân tích được nội dung.");
-      setReport(result.report); setFeedback(result.demo ? { kind: "info", text: "Báo cáo đang ở chế độ demo; AI chưa được gọi." } : { kind: "success", text: "Đã phân tích xong. Hãy xem từng trích dẫn trước khi quyết định." });
-    } catch (error) { setImageStep("select"); setFeedback({ kind: "error", text: error instanceof Error ? error.message : "Không phân tích được nội dung." }); }
-    finally { setBusy(false); }
+      setReport({ ...result.report, limitations: [...new Set([...result.report.limitations, ...analysisOcrNotes])] }); setFeedback(result.demo ? { kind: "info", text: "Báo cáo đang ở chế độ demo; AI chưa được gọi." } : { kind: "success", text: "Đã phân tích xong. Hãy xem từng trích dẫn trước khi quyết định." });
+    } catch (error) { if (version === requestVersion.current) { setImageStep("select"); setFeedback({ kind: "error", text: error instanceof Error ? error.message : "Không phân tích được nội dung." }); } }
+    finally { if (version === requestVersion.current) setBusy(false); }
   }
 
   async function saveReport() {
     if (!report) return;
-    setBusy(true); setFeedback(null);
+    const version = requestVersion.current;
+    setSaving(true); setSaveFeedback({ kind: "info", text: "Đang lưu báo cáo…" });
     try {
       const response = await fetch("/api/reports", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ report }) });
       const result = await response.json();
+      if (version !== requestVersion.current) return;
       if (!response.ok) throw new Error(result.error || "Không lưu được báo cáo.");
-      setFeedback({ kind: "success", text: "Đã lưu báo cáo vào lịch sử riêng của bạn." });
-    } catch (error) { setFeedback({ kind: "error", text: error instanceof Error ? error.message : "Không lưu được báo cáo." }); }
-    finally { setBusy(false); }
+      setSaveFeedback({ kind: "success", text: result.alreadySaved ? "Báo cáo này đã có trong lịch sử riêng của bạn." : "Đã lưu báo cáo vào lịch sử riêng của bạn." });
+    } catch (error) { if (version === requestVersion.current) setSaveFeedback({ kind: "error", text: error instanceof Error ? error.message : "Không lưu được báo cáo." }); }
+    finally { if (version === requestVersion.current) setSaving(false); }
   }
 
   async function copyReport() {
     if (!report) return;
-    const findings = report.findings.length
-      ? report.findings.map((finding, index) => `${index + 1}. ${finding.title}\n   Bằng chứng: “${finding.evidence}”\n   Vì sao cần lưu ý: ${finding.explanation}`)
+    const version = requestVersion.current;
+    const visibleFindings = displayFindings(report);
+    const findings = visibleFindings.length
+      ? visibleFindings.map((finding, index) => `${index + 1}. ${finding.title}\n   Bằng chứng: “${finding.evidence}”\n   Vì sao cần lưu ý: ${finding.explanation}`)
       : ["Chưa thấy dấu hiệu có bằng chứng trực tiếp trong nội dung đã cung cấp."];
     const checklist = report.checklist.length
       ? report.checklist.map((item, index) => `${index + 1}. ${item}`)
@@ -206,17 +296,30 @@ export function HomeApp({ signedIn, email, avatarUrl, authConfigured, authError 
     const limitations = report.limitations.length
       ? report.limitations.map((item) => `• ${item}`)
       : ["Kết quả chỉ dựa trên nội dung bạn cung cấp; cần kiểm chứng qua kênh độc lập."];
+    const layers = comparisonRows(report).map(row => row.label + ": Local — " + row.local + "; AI — " + row.ai + "; JEV — " + row.jev + ". " + row.status);
     const text = [
       "SCAMLENS AI · BÁO CÁO PHÂN TÍCH",
+      `Mã báo cáo: ${report.id}`,
+      `Thời gian: ${new Date(report.createdAt).toLocaleString("vi-VN")}`,
       `Nguồn: ${typeLabels[report.type]}`,
+      "Phân tích bằng AI",
       `Mức cảnh báo: ${riskLabels[report.riskLevel]}`,
       "",
       report.summary,
-      ...(report.jev?.status === "complete" ? ["", "TÍN HIỆU BỔ SUNG TỪ JEV", ...report.jev.signals.map((signal) => `${signal.id}: ${Math.round(signal.probability * 100)}% (${signal.result})`)] : []),
+      "",
+      "ĐỐI CHIẾU CÁC LỚP KIỂM TRA",
+      ...layers,
+      "Sự trùng khớp không xác minh người gửi hoặc sự việc ngoài đời.",
+      ...(report.jev?.status === "complete" ? [
+        "", "ĐỐI CHIẾU HÀNH VI TỪ JEV", `Độ đủ dữ kiện: ${{ usable: "đủ nội dung", limited: "thiếu một phần ngữ cảnh", unusable: "chưa đủ nội dung" }[report.jev.sufficiency]}`,
+        ...report.jev.signals.map((signal) => `${JEV_SIGNAL_DEFINITIONS[signal.id].label}: ${Math.round(signal.probability * 100)}% (${{ present: "có tín hiệu", not_detected: "chưa nhận diện", uncertain: "chưa phân biệt rõ" }[signal.result]})`),
+        ...(report.jev.diagnostics ? [`Thời gian JEV: ${report.jev.diagnostics.latencyMs} ms`] : []),
+      ] : []),
       "",
       "DẤU HIỆU CẦN LƯU Ý",
       ...findings,
       "",
+      ...(report.evidenceReviews?.filter(item => item.method === "jev").map(item => "Đối chiếu diễn giải JEV: " + item.claim + " · " + item.status) ?? []),
       "CÁCH KIỂM CHỨNG AN TOÀN",
       ...checklist,
       "",
@@ -225,15 +328,15 @@ export function HomeApp({ signedIn, email, avatarUrl, authConfigured, authError 
       "",
       "Đây là phân tích hỗ trợ sàng lọc, không xác nhận danh tính, website hoặc giao dịch. Hãy tự kiểm chứng qua kênh chính thức.",
     ].join("\n");
-    try { await navigator.clipboard.writeText(text); setCopied(true); window.setTimeout(() => setCopied(false), 1600); }
-    catch { setFeedback({ kind: "error", text: "Trình duyệt chưa cho phép sao chép. Hãy dùng nút In / lưu PDF." }); }
+    try { await navigator.clipboard.writeText(text); if (version !== requestVersion.current) return; setCopied(true); window.setTimeout(() => { if (version === requestVersion.current) setCopied(false); }, 1600); }
+    catch { if (version !== requestVersion.current) return; setFeedback({ kind: "error", text: "Trình duyệt chưa cho phép sao chép. Hãy dùng nút In / lưu PDF." }); }
   }
 
   return <main className="site-shell">
     <header className="topbar">
       <Link href="/" className="brand" aria-label="ScamLens AI trang chủ"><span className="brand-mark"><Shield size={20} strokeWidth={2.1} /><span className="brand-spark"><Sparkles size={10} /></span></span><span className="brand-word">scamlens<span>.</span><small>AI</small></span></Link>
-      <nav className="top-nav" aria-label="Điều hướng chính"><Link className="nav-active" href="/#analyze">Phân tích</Link><Link href="/guide">Cách tự bảo vệ</Link><Link href="/guide#privacy">Quyền riêng tư</Link></nav>
-      <div className="account-area"><ThemeToggle />{signedIn ? <><Link className="account-link" href="/history"><Clock3 size={15} /> Lịch sử</Link><span className="account-email" title={email ?? undefined}>{email ?? "Đã đăng nhập"}</span><span className="user-avatar" title={`Đang đăng nhập: ${email ?? "tài khoản Google"}`} aria-label={`Tài khoản ${email ?? "Google"}`}>{avatarUrl ? <Image src={avatarUrl} alt="" width={32} height={32} unoptimized referrerPolicy="no-referrer" /> : email?.[0]?.toUpperCase() ?? "U"}</span><LogoutButton /></> : authConfigured ? <a href="/auth/login" className="sign-in"><span className="google-g">G</span> Đăng nhập <ArrowUpRight size={14} /></a> : <span className="setup-state"><span /> Cấu hình đăng nhập sau</span>}</div>
+      <nav className="top-nav" aria-label="Điều hướng chính"><Link className="nav-active" href="/analyze">Phân tích</Link><Link href="/guide">Cách tự bảo vệ</Link><Link href="/guide#privacy">Quyền riêng tư</Link></nav>
+      <div className="account-area"><ThemeToggle />{signedIn ? <><Link className="account-link" href="/history"><Clock3 size={15} /> Lịch sử</Link><span className="account-email" title={email ?? undefined}>{email ?? "Đã đăng nhập"}</span><span className="user-avatar" title={`Đang đăng nhập: ${email ?? "tài khoản Google"}`} aria-label={`Tài khoản ${email ?? "Google"}`}>{avatarUrl ? <Image src={avatarUrl} alt="" width={32} height={32} unoptimized referrerPolicy="no-referrer" /> : email?.[0]?.toUpperCase() ?? "U"}</span><LogoutButton /></> : authConfigured ? <a href="/auth/login?next=%2Fanalyze" className="sign-in"><span className="google-g">G</span> Đăng nhập <ArrowUpRight size={14} /></a> : <span className="setup-state"><span /> Cấu hình đăng nhập sau</span>}</div>
     </header>
     {authError && <p className="feedback feedback-error" role="alert">Chưa hoàn tất đăng nhập Google. Hãy bắt đầu đăng nhập lại trên cùng domain. Nếu vẫn lỗi, kiểm tra URL callback trong cấu hình Supabase.</p>}
 
@@ -294,9 +397,10 @@ export function HomeApp({ signedIn, email, avatarUrl, authConfigured, authError 
           )}
         </div>
       </div>
+      {selectedDemo && <aside className="demo-case-disclosure"><div><strong>{selectedDemo.classification === "suspicious" ? "Mẫu đáng ngờ" : selectedDemo.classification === "benign" ? "Mẫu đối chứng bình thường" : "Mẫu thiếu thông tin"} · tình huống giả lập</strong><a href={selectedDemo.sourceUrl} target="_blank" rel="noreferrer">Nguồn tham khảo: {selectedDemo.sourceLabel}</a></div><p><b>Dấu hiệu mong đợi:</b> {selectedDemo.expectedSignals.join(" · ")}</p><p><b>Chưa thể kết luận:</b> {selectedDemo.cannotConclude}</p><p><b>Bước kiểm tra:</b> {selectedDemo.nextStep}</p></aside>}
       <div className="analysis-grid">
         <section className="input-panel">
-          <div className="panel-label-row"><span className="panel-label"><span className="step-number">01</span> Chọn nội dung cần kiểm tra</span></div>
+          <div className="panel-label-row"><span className="workflow-step-label"><span className="step-number">01</span><span>Nhập nội dung cần kiểm tra</span></span></div>
           <div className="type-tabs" role="tablist" aria-label="Loại dữ liệu cần phân tích">{types.map(({ id, label, icon: Icon }) => <button key={id} role="tab" aria-selected={type === id} className={`type-tab ${type === id ? "selected" : ""}`} type="button" onClick={() => switchType(id)}><Icon size={16} strokeWidth={1.8} /><span>{label}</span></button>)}</div>
 
           {type === "image" ? <div className="input-fields image-fields">
@@ -306,7 +410,7 @@ export function HomeApp({ signedIn, email, avatarUrl, authConfigured, authError 
                 role="radio"
                 aria-checked={imageMode === "quick"}
                 className={`flow-mode-btn ${imageMode === "quick" ? "active" : ""}`}
-                onClick={() => { setImageMode("quick"); setUseJev(false); }}
+                onClick={() => { invalidateAnalysis(); setImageMode("quick"); setUseJev(false); }}
               >
                 <Zap size={14} /> Quét nhanh
               </button>
@@ -315,15 +419,16 @@ export function HomeApp({ signedIn, email, avatarUrl, authConfigured, authError 
                 role="radio"
                 aria-checked={imageMode === "step"}
                 className={`flow-mode-btn ${imageMode === "step" ? "active" : ""}`}
-                onClick={() => setImageMode("step")}
+                onClick={() => { invalidateAnalysis(); setImageMode("step"); }}
               >
                 <FileText size={14} /> Kiểm tra từng bước
               </button>
             </div>
 
             <ImageRedactor
-              onPrepared={(file) => { setRedactedImage(file); setUseJev(false); }}
-              onClear={() => { setRedactedImage(null); setOcrText(""); setOcrConfirmed(false); setImageStep("select"); }}
+              onPrepared={(file) => { invalidateAnalysis(); setRedactedImage(file); setOcrText(""); setOcrNotes([]); setOcrConfirmed(false); setImageStep("select"); setUseJev(false); }}
+              onQrContent={(text) => { switchType(/^https?:\/\/[^\s]+$/iu.test(text) ? "url" : "message"); setContent(text); setFeedback({ kind: "info", text: "QR đã được đọc local. Rà soát bản gửi và bấm phân tích khi sẵn sàng." }); }}
+              onClear={() => { invalidateAnalysis(); setRedactedImage(null); setOcrText(""); setOcrNotes([]); setOcrConfirmed(false); setImageStep("select"); }}
             />
 
             {imageMode === "quick" ? (
@@ -341,7 +446,7 @@ export function HomeApp({ signedIn, email, avatarUrl, authConfigured, authError 
                     <button
                       type="button"
                       className="secondary-button"
-                      disabled={!redactedImage || busy || imageStep === "reading"}
+                      disabled={!redactedImage || busy || ocrBusy}
                       onClick={readImageOcr}
                     >
                       {imageStep === "reading" ? <><LoaderCircle size={15} className="spin" /> Đang đọc chữ...</> : <><FileText size={15} /> Đọc chữ trong ảnh</>}
@@ -350,28 +455,22 @@ export function HomeApp({ signedIn, email, avatarUrl, authConfigured, authError 
                 ) : (
                   <div className="step-mode-review">
                     <div className="step-mode-review-header">
-                      <strong>Chữ đọc được từ ảnh</strong>
+                      <strong>Đối chiếu với ảnh trước khi xác nhận</strong>
                       <button
                         type="button"
                         className="text-button"
-                        onClick={() => { setImageStep("select"); setOcrConfirmed(false); setUseJev(false); }}
+                        onClick={() => { invalidateAnalysis(); setImageStep("select"); setOcrConfirmed(false); setUseJev(false); }}
                       >
                         Đọc lại từ ảnh
                       </button>
                     </div>
-                    <textarea
-                      id="ocr-text-input"
-                      className="main-textarea font-mono"
-                      rows={5}
-                      value={ocrText}
-                      onChange={(e) => setOcrText(e.target.value)}
-                      placeholder="Chữ đọc được từ ảnh..."
-                    />
+                    {sourceReview}
+                    {ocrNotes.length > 0 && <ul className="ocr-review-notes">{ocrNotes.map((note, index) => <li key={`${note}-${index}`}>{note}</li>)}</ul>}
                     <label className="check-label" style={{ marginTop: "10px" }}>
                       <input
                         type="checkbox"
                         checked={ocrConfirmed}
-                        onChange={(e) => { setOcrConfirmed(e.target.checked); if (!e.target.checked) setUseJev(false); }}
+                        onChange={(e) => { invalidateAnalysis(); setOcrConfirmed(e.target.checked); if (!e.target.checked) setUseJev(false); }}
                       />
                       <span>Tôi đã kiểm tra chữ trong ảnh này là chính xác</span>
                     </label>
@@ -388,6 +487,7 @@ export function HomeApp({ signedIn, email, avatarUrl, authConfigured, authError 
           </div> : <div className={`input-fields ${type === "email" ? "email-input-fields" : ""}`}>
             {type === "email" && (
               <div className="email-envelope-box">
+                <div className="eml-import"><label htmlFor="email-file">Nhập từ tệp .eml (tối đa 2 MiB)</label><p>Chọn tệp sẽ gửi thư tới máy chủ ScamLens để đọc và điền biểu mẫu. Tệp không được lưu và chưa được gửi tới AI; tệp đính kèm không được thực thi.</p><input id="email-file" type="file" accept=".eml,message/rfc822" disabled={importBusy} onChange={event => { const file = event.target.files?.[0]; if (file) void importEmail(file); event.target.value = ""; }} />{importBusy && <p role="status">Đang đọc thư…</p>}{importNotes.length > 0 && <ul>{importNotes.map((note, index) => <li key={index}>{note}</li>)}</ul>}</div>
                 <div className="email-envelope-header">
                   <span className="email-envelope-icon"><Mail size={16} /></span>
                   <div className="email-envelope-title">
@@ -405,7 +505,7 @@ export function HomeApp({ signedIn, email, avatarUrl, authConfigured, authError 
                       id="email-sender"
                       className="email-input font-mono"
                       value={sender}
-                      onChange={(e) => setSender(e.target.value)}
+                      onChange={(e) => { invalidateAnalysis(); setSender(e.target.value); }}
                       placeholder="Ví dụ: Vietcombank <cskh@vietcombank-online.info>"
                     />
                   </div>
@@ -419,7 +519,7 @@ export function HomeApp({ signedIn, email, avatarUrl, authConfigured, authError 
                       id="email-replyto"
                       className="email-input font-mono"
                       value={replyTo}
-                      onChange={(e) => setReplyTo(e.target.value)}
+                      onChange={(e) => { invalidateAnalysis(); setReplyTo(e.target.value); }}
                       placeholder="Ví dụ: security-support247@gmail.com"
                     />
                   </div>
@@ -433,7 +533,7 @@ export function HomeApp({ signedIn, email, avatarUrl, authConfigured, authError 
                       id="email-subject"
                       className="email-input"
                       value={subject}
-                      onChange={(e) => setSubject(e.target.value)}
+                      onChange={(e) => { invalidateAnalysis(); setSubject(e.target.value); }}
                       placeholder="Ví dụ: [Cảnh báo bảo mật] Xác thực định danh tài khoản để tránh khóa thẻ trong 24h"
                     />
                   </div>
@@ -441,9 +541,9 @@ export function HomeApp({ signedIn, email, avatarUrl, authConfigured, authError 
               </div>
             )}
             <label className="field-label" htmlFor="content-input">{type === "message" ? "Nội dung tin nhắn" : type === "email" ? "Nội dung email" : "Đường dẫn cần kiểm tra"}<span>{content.length.toLocaleString("vi-VN")} / 20.000</span></label>
-            <textarea id="content-input" className="main-textarea" value={content} onChange={(e) => { setContent(e.target.value.slice(0, 20_000)); }} placeholder={type === "message" ? "Dán tin nhắn đáng ngờ vào đây…\n\nVí dụ: thông báo tài khoản, yêu cầu thanh toán, tin tuyển dụng" : type === "email" ? "Dán phần nội dung email cần kiểm tra…" : "Ví dụ: example.com/secure-account"} maxLength={20_000} />
-            <label className="field-label context-field">Ngữ cảnh bổ sung <span>Tùy chọn · cũng sẽ được gửi</span><textarea value={context} onChange={(e) => { setContext(e.target.value); }} rows={2} maxLength={1000} placeholder="Bạn được gửi nội dung này trong hoàn cảnh nào?" /></label>
-            <details className="payload-preview"><summary>Xem nội dung sẽ gửi</summary><pre>{[redactedPayload.sender && `Người gửi: ${redactedPayload.sender}`, redactedPayload.replyTo && `Reply-To: ${redactedPayload.replyTo}`, redactedPayload.subject && `Tiêu đề: ${redactedPayload.subject}`, redactedPayload.content, redactedPayload.context && `Ngữ cảnh: ${redactedPayload.context}`].filter(Boolean).join("\n")}</pre><p className="micro-note">Tự động che chỉ nhận diện một số mẫu như email, số điện thoại, OTP dạng số và chuỗi số dài. Hãy tự rà soát tên riêng, địa chỉ và dữ liệu nhạy cảm còn lại.</p></details>
+            <textarea id="content-input" className="main-textarea" value={content} onChange={(e) => { invalidateAnalysis(); setContent(e.target.value.slice(0, 20_000)); }} placeholder={type === "message" ? "Dán tin nhắn đáng ngờ vào đây…\n\nVí dụ: thông báo tài khoản, yêu cầu thanh toán, tin tuyển dụng" : type === "email" ? "Dán phần nội dung email cần kiểm tra…" : "Ví dụ: example.com/secure-account"} maxLength={20_000} />
+            <label className="field-label context-field">Ngữ cảnh bổ sung <span>Tùy chọn · cũng sẽ được gửi</span><textarea value={context} onChange={(e) => { invalidateAnalysis(); setContext(e.target.value); }} rows={2} maxLength={1000} placeholder="Bạn được gửi nội dung này trong hoàn cảnh nào?" /></label>
+            {sourceReview}
           </div>}
 
           {/* DYNAMIC LOCAL SENSOR ALERT: Only pops out when suspicious signals are detected in content */}
@@ -452,13 +552,13 @@ export function HomeApp({ signedIn, email, avatarUrl, authConfigured, authError 
               <div className="sensor-alert-header">
                 <span className="sensor-alert-icon"><ShieldAlert size={18} /></span>
                 <div className="sensor-alert-title">
-                  <strong>Cảm biến phát hiện {settledSignals.length} dấu hiệu khả nghi ngay trong nội dung</strong>
-                  <small>Phân tích cục bộ trên thiết bị của bạn trước khi bấm quét.</small>
+                  <strong>Kiểm tra cục bộ thấy {settledSignals.length} dấu hiệu cần rà soát</strong>
+                  <small>Đây là gợi ý ban đầu trên thiết bị, chưa phải kết luận.</small>
                 </div>
               </div>
               <ul className="sensor-pill-list">
                 {settledSignals.map((signal) => (
-                  <li key={signal.id} className={`sensor-pill sensor-pill-${signal.id}`}>
+                  <li key={`${signal.id}:${signal.evidence}`} className={`sensor-pill sensor-pill-${signal.id}`}>
                     <span className="pill-dot" />
                     <strong>{signal.label}:</strong>
                     <span>“{signal.evidence}”</span>
@@ -469,42 +569,34 @@ export function HomeApp({ signedIn, email, avatarUrl, authConfigured, authError 
           )}
 
           {jevAvailable ? <div className="jev-opt-in">
-            <label className="check-label"><input type="checkbox" checked={useJev} onChange={(event) => setUseJev(event.target.checked)} disabled={busy || (type === "image" && (imageMode !== "step" || !ocrConfirmed))} /><span><strong>Đối chiếu thêm bằng JEV</strong><small>Gửi nội dung đã che tới TypeSafe để chấm sáu tín hiệu riêng. Tùy chọn này không làm giảm cảnh báo chính.</small></span></label>
+            <label className="check-label"><input type="checkbox" checked={useJev} onChange={(event) => setUseJev(event.target.checked)} disabled={busy || ocrBusy || (type === "image" && (imageMode !== "step" || !ocrConfirmed))} /><span><strong>Đối chiếu thêm bằng JEV</strong><small>Gửi nội dung đã che tới TypeSafe để đối chiếu chín hành vi. Tùy chọn này không làm giảm cảnh báo chính.</small></span></label>
             <p>{type === "image" ? "Với ảnh, chuyển sang Kiểm tra từng bước và xác nhận phần OCR trước; JEV chỉ nhận bản chữ, không nhận ảnh." : "Nội dung vẫn có thể còn dữ liệu nhận dạng chưa được che. Hãy rà soát phần “Xem nội dung sẽ gửi” trước khi bật."}</p>
           </div> : <div className="jev-opt-in jev-opt-in-disabled" role="status">
             <strong>Đối chiếu JEV chưa được bật</strong><p>Luồng web chỉ dùng các dịch vụ AI đang cấu hình. Quản trị viên cần bật JEV trong cấu hình server trước khi sử dụng.</p>
           </div>}
 
           {feedback && <div className={`feedback feedback-${feedback.kind}`} role={feedback.kind === "error" ? "alert" : "status"}>{feedback.kind === "error" ? <TriangleAlert size={16} /> : feedback.kind === "success" ? <Check size={16} /> : <CircleHelp size={16} />}{feedback.text}</div>}
-          <button className="primary-button full-button analyze-button" type="button" disabled={!canAnalyze || busy} onClick={analyze}>{busy ? <span className="loading-shimmer"><LoaderCircle size={16} className="spin" /> {type === "image" ? "AI đang đọc ảnh và phân tích..." : "Đang phân tích..."}</span> : <><Sparkles size={16} /> Quét dấu hiệu lừa đảo ngay <ArrowRight size={15} /></>}</button>
+          <button className="primary-button full-button analyze-button" type="button" disabled={!canAnalyze || busy || ocrBusy || importBusy} onClick={analyze}>{busy ? <span className="loading-shimmer"><LoaderCircle size={16} className="spin" /> {type === "image" ? "AI đang đọc ảnh và phân tích..." : "Đang phân tích..."}</span> : <><Sparkles size={16} /> Quét dấu hiệu lừa đảo ngay <ArrowRight size={15} /></>}</button>
         </section>
       </div>
     </section>
 
-    {report && <ReportView ref={reportRef} report={report} signedIn={signedIn} busy={busy} onSave={saveReport} onCopy={copyReport} copied={copied} />}
+    {report && <ReportView ref={reportRef} report={report} signedIn={signedIn} busy={saving} onSave={saveReport} onCopy={copyReport} copied={copied} saveFeedback={saveFeedback} webRiskConfigured={webRiskConfigured} />}
 
     <footer className="footer"><Link href="/" className="brand footer-brand"><span className="brand-mark"><Shield size={16} /></span><span className="brand-word">scamlens<span>.</span><small>AI</small></span></Link><nav><Link href="/guide">Hướng dẫn</Link><Link href="/guide#privacy">Quyền riêng tư</Link><span>© 2026 ScamLens AI</span></nav></footer>
   </main>;
 }
 
-function ReportView({ ref, report, signedIn, busy, onSave, onCopy, copied }: { ref?: React.Ref<HTMLElement>; report: AnalysisReport; signedIn: boolean; busy: boolean; onSave(): void; onCopy(): void; copied: boolean }) {
-  const [expandedLimitations, setExpandedLimitations] = useState(false);
+function ReportView({ ref, report, signedIn, busy, onSave, onCopy, copied, saveFeedback, webRiskConfigured }: { ref?: React.Ref<HTMLElement>; report: AnalysisReport; signedIn: boolean; busy: boolean; onSave(): void; onCopy(): void; copied: boolean; saveFeedback: Feedback; webRiskConfigured: boolean }) {
   const dossierId = `SL-2026-${report.id.slice(0, 8).toUpperCase()}`;
   const riskClass = `risk-${report.riskLevel}`;
-  const dimensions: Array<{ label: string; categories: string[] }> = [
-    { label: "Áp lực thời gian", categories: ["urgency"] },
-    { label: "Mạo danh", categories: ["impersonation"] },
-    { label: "Dụ chuyển tiền", categories: ["money_request"] },
-    { label: "Dữ liệu xác thực", categories: ["secret_request"] },
-  ];
-
   return <section ref={ref} id="report-section" className="report-section" aria-live="polite">
     {/* PRINT ONLY OFFICIAL DOSSIER HEADER */}
     <div className="print-dossier-header">
       <div className="print-header-top">
         <div className="print-logo-row">
           <span className="print-brand-word">ScamLens AI</span>
-          <span className="print-badge-verified">BIÊN BẢN GIÁM ĐỊNH AN NINH SỐ</span>
+          <span className="print-badge-verified">BÁO CÁO PHÂN TÍCH</span>
         </div>
         <div className="print-meta-grid">
           <div><strong>Mã hồ sơ:</strong> #{dossierId}</div>
@@ -519,11 +611,11 @@ function ReportView({ ref, report, signedIn, busy, onSave, onCopy, copied }: { r
     <div className="report-header">
       <div>
         <div className="dossier-id-row">
-          <span className="section-kicker">HỒ SƠ GIÁM ĐỊNH KỸ THUẬT SỐ</span>
+          <span className="workflow-step-label"><span className="step-number">03</span><span>Đọc kết quả</span></span>
           <span className="dossier-id-tag">#{dossierId}</span>
           <span className="dossier-status-pill"><BadgeCheck size={13} /> ĐÃ HOÀN TẤT</span>
         </div>
-        <h2>Kết Quả Giám Định & Bằng Chứng</h2>
+          <h2>Báo cáo phân tích và bằng chứng</h2>
       </div>
       <div className="report-actions">
         <button className="secondary-button" onClick={onCopy}><Copy size={15} /> {copied ? "Đã sao chép" : "Sao chép"}</button>
@@ -541,14 +633,17 @@ function ReportView({ ref, report, signedIn, busy, onSave, onCopy, copied }: { r
       <div className="report-meta">
         <span>{new Date(report.createdAt).toLocaleString("vi-VN", { dateStyle: "medium", timeStyle: "short" })}</span>
         <span>{report.model.text === "demo-rules" ? "Mô hình quy tắc" : report.jev?.status === "complete" ? "AI chính · đối chiếu JEV" : "Phân tích bằng AI"}</span>
-        <span>{report.source.confirmedOcr ? "Bản đọc ảnh OCR xác nhận" : "Nguồn trực tiếp"}</span>
+        <span>{report.type === "image" ? report.source.confirmedOcr ? "Bản đọc OCR đã xác nhận" : "Bản đọc OCR chưa xác nhận" : "Nội dung do bạn cung cấp"}</span>
       </div>
     </div>
 
-    {report.jev && <JevAssessmentCard assessment={report.jev} confirmedOcr={report.source.confirmedOcr} />}
+    <EvidenceFindings report={report} />
+    <EvidenceComparison report={report} />
+    {report.jev && <JevAssessmentCard assessment={report.jev} confirmedOcr={report.source.confirmedOcr} sourceType={report.type} />}
+    <ExternalUrlCheck source={report.source.content} configured={webRiskConfigured} />
 
     {report.findings.length > 0 && (
-      <div className="contextual-source">
+      <details className="contextual-source"><summary>Xem toàn bộ nội dung và vị trí trích dẫn</summary>
         <div className="result-card-heading">
           <span className="result-icon blue"><MessageCircle size={17} /></span>
           <div>
@@ -567,30 +662,8 @@ function ReportView({ ref, report, signedIn, busy, onSave, onCopy, copied }: { r
             )
           )}
         </p>
-      </div>
+      </details>
     )}
-
-    <div className="manipulation-gauge">
-      <div className="result-card-heading">
-        <span className="result-icon amber"><TriangleAlert size={17} /></span>
-        <div>
-          <h3>Bộ Giải Mã Thủ Đoạn Thao Túng Tâm Lý</h3>
-          <p>Đối soát tự động qua 4 nhóm chiến thuật lừa đảo phổ biến nhất.</p>
-        </div>
-      </div>
-      <div className="gauge-grid">
-        {dimensions.map((dimension) => {
-          const found = report.findings.some((finding) => dimension.categories.includes(finding.category));
-          return (
-            <div className="gauge-row" key={dimension.label}>
-              <span>{dimension.label}</span>
-              <span className="gauge-track"><i className={found ? "gauge-found" : ""} /></span>
-              <small>{found ? "Phát hiện dấu hiệu" : "Không thấy mẫu rõ ràng"}</small>
-            </div>
-          );
-        })}
-      </div>
-    </div>
 
     <div className="report-lower-grid">
       {/* EMERGENCY PROTOCOL & VERIFICATION STEPS */}
@@ -598,23 +671,12 @@ function ReportView({ ref, report, signedIn, busy, onSave, onCopy, copied }: { r
         <div className="result-card-heading">
           <span className="result-icon green"><BadgeCheck size={17} /></span>
           <div>
-            <h3>Giao Thức Cứu Hộ & Xác Minh Độc Lập</h3>
-            <p>Hành động lập tức theo các bước dưới đây để bảo toàn tài sản số.</p>
+            <h3>Bạn nên làm gì tiếp theo?</h3>
+            <p>Chọn thao tác bạn đã thực hiện, rồi xác minh qua kênh chính thức.</p>
           </div>
         </div>
 
-        {report.riskLevel === "high" && (
-          <div className="emergency-alert-banner">
-            <div className="emergency-badge">🚨 HÀNH ĐỘNG KHẨN CẤP</div>
-            <p>Nếu bạn đã lỡ chuyển tiền, nhấn vào liên kết lạ hoặc gửi mã OTP:</p>
-            <div className="emergency-action-chips">
-              <span className="action-chip"><LockKeyhole size={14} /> Khóa tài khoản trên App ngân hàng</span>
-              <a href="tel:02513685134" className="action-chip highlight-chip" title="Phòng An ninh mạng & PCTP sử dụng công nghệ cao - Công an tỉnh Đồng Nai"><PhoneCall size={14} /> PA05 Đồng Nai: 0251 3685134</a>
-              <a href="tel:156" className="action-chip" title="Tổng đài quốc gia tiếp nhận phản ánh cuộc gọi & tin nhắn lừa đảo"><PhoneCall size={14} /> Tổng đài 156</a>
-              <Link href="/guide#contacts" className="action-chip" title="Xem danh bạ chính thức và các kênh xác minh"><ExternalLink size={14} /> Xem danh bạ hỗ trợ</Link>
-            </div>
-          </div>
-        )}
+        <ResponseActions />
 
         <div className="verification-steps-list">
           {report.checklist.map((item, i) => (
@@ -627,7 +689,7 @@ function ReportView({ ref, report, signedIn, busy, onSave, onCopy, copied }: { r
 
         <div className="never-do">
           <LockKeyhole size={15} />
-          <strong>Nguyên tắc cốt tử: Cơ quan nhà nước và ngân hàng KHÔNG BAO GIỜ yêu cầu bạn cung cấp mã OTP, chuyển tiền vào tài khoản cá nhân, hoặc cài ứng dụng qua link lạ.</strong>
+          <strong>Ghi nhớ: Không đọc OTP hoặc mật khẩu cho người khác. Tự kiểm tra yêu cầu chuyển tiền và người nhận qua kênh chính thức.</strong>
         </div>
       </article>
 
@@ -641,15 +703,10 @@ function ReportView({ ref, report, signedIn, busy, onSave, onCopy, copied }: { r
           </div>
         </div>
         <ul className="limits-list">
-          {(expandedLimitations ? report.limitations : report.limitations.slice(0, 3)).map((item, i) => (
+          {report.limitations.map((item, i) => (
             <li key={`${item}-${i}`}>{item}</li>
           ))}
         </ul>
-        {report.limitations.length > 3 && (
-          <button className="text-button" type="button" onClick={() => setExpandedLimitations(!expandedLimitations)}>
-            {expandedLimitations ? "Thu gọn" : `Xem thêm ${report.limitations.length - 3} lưu ý`} <ChevronDown size={14} />
-          </button>
-        )}
       </article>
     </div>
 
@@ -657,11 +714,11 @@ function ReportView({ ref, report, signedIn, busy, onSave, onCopy, copied }: { r
     <div className="print-dossier-footer">
       <div className="print-legal-notice">
         <strong>LƯU Ý PHÁP LÝ & AN TOÀN THÔNG TIN:</strong>
-        <p>Báo cáo này được kết xuất tự động từ hệ thống ScamLens AI phục vụ người dùng tự rà soát, nâng cao cảnh giác. Hệ thống cam kết không lưu lại nội dung nhạy cảm của người dùng khi chưa có sự xác nhận. Trong trường hợp nghi vấn có dấu hiệu phạm tội lừa đảo chiếm đoạt tài sản, đề nghị người dân bảo lưu bằng chứng và trình báo trực tiếp cho cơ quan Công an nơi gần nhất hoặc qua đường dây nóng 156 / 5656.</p>
+        <p>Báo cáo này được kết xuất tự động từ hệ thống ScamLens AI phục vụ người dùng tự rà soát, nâng cao cảnh giác. Hệ thống cam kết không lưu lại nội dung nhạy cảm của người dùng khi chưa có sự xác nhận. Trong trường hợp nghi vấn có dấu hiệu phạm tội lừa đảo chiếm đoạt tài sản, đề nghị người dân bảo lưu bằng chứng và trình báo trực tiếp cho cơ quan Công an nơi gần nhất qua kênh chính thức.</p>
       </div>
       <div className="print-hash-block">
-        <div>MÃ BĂM GIÁM ĐỊNH (SHA-256 HASH): <code>{report.id}</code></div>
-        <div>HỆ THỐNG PHÒNG VỆ & GIÁM ĐỊNH SCAMLENS AI — VIỆT NAM 2026</div>
+        <div>MÃ BÁO CÁO: <code>{report.id}</code></div>
+        <div>BÁO CÁO HỖ TRỢ SÀNG LỌC SCAMLENS AI</div>
       </div>
     </div>
 
@@ -670,12 +727,13 @@ function ReportView({ ref, report, signedIn, busy, onSave, onCopy, copied }: { r
         <strong><Fingerprint size={15} /> Cam kết bảo mật: Nội dung không được lưu trữ tự động</strong>
         <span>Toàn bộ phân tích được xử lý tức thời. Chỉ khi bạn bấm nút dưới đây, báo cáo mới được lưu vào danh mục của bạn.</span>
       </div>
-      {signedIn ? (
+      {signedIn ? <>
         <button className="primary-button save-button" disabled={busy} onClick={onSave}>
           {busy ? <LoaderCircle size={15} className="spin" /> : <Clock3 size={15} />} {busy ? "Đang lưu..." : "Lưu vào lịch sử"}
         </button>
-      ) : (
-        <a className="save-button secondary-button" href="/auth/login">
+        {saveFeedback && <p className={`save-feedback feedback-${saveFeedback.kind}`} role={saveFeedback.kind === "error" ? "alert" : "status"}>{saveFeedback.text}</p>}
+      </> : (
+        <a className="save-button secondary-button" href="/auth/login?next=%2Fanalyze">
           Đăng nhập để lưu <ArrowRight size={14} />
         </a>
       )}
@@ -697,4 +755,12 @@ function segmentSource(source: string, findings: AnalysisReport["findings"]) {
   }
   if (cursor < source.length) segments.push({ text: source.slice(cursor) });
   return segments;
+}
+
+function extractOcrNotes(value: unknown): string[] {
+  if (!value || typeof value !== "object") return [];
+  const data = value as { notes?: unknown; uncertainParts?: unknown };
+  const notes = Array.isArray(data.notes) ? data.notes.filter((item): item is string => typeof item === "string") : [];
+  const uncertain = Array.isArray(data.uncertainParts) ? data.uncertainParts.filter((item): item is string => typeof item === "string").map((item) => `OCR chưa chắc: “${item}”. Hãy đối chiếu với ảnh.`) : [];
+  return [...new Set([...notes, ...uncertain].map(note => redactSensitiveText(note)))].slice(0, 20);
 }

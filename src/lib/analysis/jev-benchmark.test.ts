@@ -4,8 +4,15 @@ import { assertCanSpend, BUDGET_DEEPSEEK_USD, BUDGET_TOTAL_USD, BUDGET_TYPESAFE_
 import { CLASSIFICATION_QUESTIONS, assessEvidence, assessSignals, evidenceRequest, isSignalPositive } from "../../../scripts/jev/jev-client";
 import { evaluateEvidence, evaluateSignals, summarize } from "../../../scripts/jev/metrics";
 import type { EvaluationRecord } from "../../../scripts/jev/contracts";
+import { JEV_SIGNAL_IDS } from "@/lib/ai/jev-signals";
 
 describe("JEV synthetic benchmark", () => {
+  it("does not equate receiving a refund with a request to send money", () => {
+    const plain = createCorpus().filter(sample => sample.variant === "plain");
+    expect(plain.find(sample => sample.id === "suspicious-17-plain")?.labels.signals.requests_payment).toBe(false);
+    expect(plain.find(sample => sample.id === "benign-14-plain")?.labels.signals.requests_payment).toBe(false);
+    expect(plain.find(sample => sample.id === "suspicious-19-plain")?.labels.signals.bypasses_official_channel).toBe(false);
+  });
   it("creates the agreed 240 records across the three balanced strata and four source types", () => {
     const samples = createCorpus();
     expect(samples).toHaveLength(240);
@@ -28,6 +35,23 @@ describe("JEV synthetic benchmark", () => {
     expect(new Set(dev.map((sample) => sample.familyId)).intersection(new Set(test.map((sample) => sample.familyId))).size).toBe(0);
   });
 
+  it("labels authority only for a sender who claims an institutional role", () => {
+    const plain = createCorpus().filter((sample) => sample.variant === "plain");
+    expect(plain.filter((sample) => sample.labels.group === "benign" && sample.labels.signals.claims_authority).map(sample => sample.familyId)).toEqual(["benign-19"]);
+    const authorityExamples = plain.filter((sample) => sample.labels.group === "suspicious" && sample.labels.signals.claims_authority);
+    expect(authorityExamples.length).toBeGreaterThan(0);
+    expect(authorityExamples.filter((sample) => !/tôi là|tự nhận|tự xưng/i.test(`${sample.input.content} ${sample.input.context ?? ""}`)).map((sample) => sample.familyId)).toEqual([]);
+  });
+
+  it("covers identity document, app access, and secrecy signals without labeling safe warnings as requests", () => {
+    const plain = createCorpus().filter((sample) => sample.variant === "plain");
+    for (const id of ["requests_identity_documents", "requests_app_or_remote_access", "demands_secrecy"] as const) {
+      expect(plain.filter((sample) => sample.labels.group === "suspicious" && sample.labels.signals[id]).length).toBeGreaterThanOrEqual(3);
+      expect(plain.filter((sample) => sample.labels.group === "benign" && sample.labels.signals[id])).toEqual([]);
+    }
+    expect(plain.find((sample) => sample.id === "benign-20-plain")?.labels.signals.requests_app_or_remote_access).toBe(false);
+  });
+
   it("creates and family-splits 120 evidence pairs evenly by expected decision", () => {
     const pairs = createEvidencePairs();
     expect(pairs).toHaveLength(120);
@@ -43,16 +67,18 @@ describe("JEV synthetic benchmark", () => {
 });
 
 describe("JEV request contracts", () => {
-  it("sends only the source fields and seven typed questions, never benchmark labels", async () => {
+  it("sends only the source fields and ten typed questions, never benchmark labels", async () => {
     const sample = createCorpus().find((item) => item.id === "suspicious-01-plain")!;
     const answers = Object.fromEntries([
-      ...["requests_credentials", "requests_payment", "uses_pressure", "claims_authority", "bypasses_official_channel", "promises_guaranteed_return"].map((name) => [name, { type: "noul", noul: 0.9 }]),
+      ...JEV_SIGNAL_IDS.map((name) => [name, { type: "noul", noul: 0.9 }]),
       ["sufficiency", { type: "choice", choice: "usable", probabilities: { usable: 0.9, limited: 0.08, unusable: 0.02 }, confidence: 0.85 }],
     ]);
     const systemOne = vi.fn().mockResolvedValue({ answers, model: "jev-1.14.0", usage: { input_tokens: 120, output_tokens: 16 } });
     const result = await assessSignals(sample, { systemOne } as never);
 
-    expect(Object.keys(CLASSIFICATION_QUESTIONS)).toHaveLength(7);
+    expect(Object.keys(CLASSIFICATION_QUESTIONS)).toHaveLength(10);
+    expect(Object.keys(result.probabilities)).toHaveLength(9);
+    expect(result.probabilities.requests_app_or_remote_access).toBe(0.9);
     expect(result.sufficiency).toBe("usable");
     expect(result.probabilities.requests_credentials).toBe(0.9);
     const request = systemOne.mock.calls[0][0];

@@ -14,7 +14,7 @@ Riêng benchmark PoC chỉ chạy trên dữ liệu tổng hợp và không đ�
 
 **WEB-02 — Dữ liệu.** Key chỉ nằm phía server. Request JEV dùng nội dung đã được che lần nữa ở server; không gửi nhãn benchmark hoặc ảnh và không truy cập URL. Với ảnh, UI và API yêu cầu người dùng xem/chỉnh sửa/xác nhận OCR trước khi gửi chữ sang JEV; kết quả vẫn phải ghi rõ giới hạn OCR. UI cho xem bản gửi và nhắc rằng tự động che không bảo đảm ẩn mọi dữ liệu cá nhân.
 
-**WEB-03 — Kết quả.** JEV hiển thị riêng sáu xác suất Noul và mức sufficiency. Quy tắc và DeepSeek tiếp tục tạo báo cáo chính; JEV không tạo finding, summary hay riskLevel và không thể hạ cảnh báo. Nếu provider lỗi hoặc chạm quota thì báo cáo chính vẫn trả về, kèm `jev.status=unavailable`.
+**WEB-03 — Kết quả.** JEV hiển thị riêng xác suất Noul cho chín hành vi và mức sufficiency. Giao diện phân nhóm yêu cầu/hành vi thuyết phục, thể hiện độ đủ dữ kiện, độ trễ và token nếu provider trả metadata. Quy tắc và DeepSeek tiếp tục tạo báo cáo chính; JEV không tạo finding, summary hay riskLevel và không thể hạ cảnh báo. Nếu provider lỗi hoặc chạm quota thì báo cáo chính vẫn trả về, kèm `jev.status=unavailable`.
 
 **WEB-04 — Chi phí và giới hạn.** Mỗi lựa chọn JEV thêm một request TypeSafe bên cạnh request DeepSeek hiện có. Chia sẻ quota actor/phút ScamLens, cộng trần provider `RATE_LIMIT_TYPESAFE_DAILY` (mặc định 30/ngày); không tự retry. Flag web tắt mặc định. Không bật live trong repo hiện tại trước khi thay key đã lộ.
 
@@ -22,18 +22,21 @@ Riêng benchmark PoC chỉ chạy trên dữ liệu tổng hợp và không đ�
 
 **EV-01 — Phân loại.** `BenchmarkSample` chứa `id`, `familyId`, loại nguồn, biến thể, đầu vào tương tự `AnalyzeRequest` và nhãn ngoài payload. Payload provider chỉ gồm các trường nguồn cần thiết. Nhãn, nhóm, split, ID mẫu và đáp án không được gửi.
 
-Một request `System One` ghim `jev-1.14.0` gồm sáu `Noul`:
+Một request `System One` ghim `jev-1.14.0` gồm chín `Noul`:
 
 | Khóa | Câu hỏi |
 |---|---|
 | `requests_credentials` | Người gửi có yêu cầu người nhận tiết lộ hoặc truyền OTP, mật khẩu, PIN, CVV hay bí mật xác thực không? |
+| `requests_identity_documents` | Người gửi có yêu cầu số/ảnh giấy tờ định danh hoặc selfie xác minh không? |
 | `requests_payment` | Người gửi có yêu cầu chuyển tiền, trả phí hay thanh toán không? |
-| `uses_pressure` | Nội dung có gây gấp, đe hậu quả, ép giữ bí mật hoặc tạo khan hiếm không? |
+| `requests_app_or_remote_access` | Người gửi có yêu cầu cài app/tệp không tin cậy hoặc bật điều khiển/chia sẻ màn hình từ xa không? |
+| `uses_pressure` | Nội dung có thúc ép hành động, đe hậu quả hoặc tạo khan hiếm không? |
+| `demands_secrecy` | Người gửi có yêu cầu giấu tương tác hoặc tránh hỏi người thân/đồng nghiệp không? |
 | `claims_authority` | Người gửi có tự nhận đại diện tổ chức hoặc người có thẩm quyền không? |
 | `bypasses_official_channel` | Người gửi có đề nghị bỏ qua quy trình bảo mật hoặc kênh chính thức không? |
 | `promises_guaranteed_return` | Nội dung có hứa chắc lợi nhuận/hoàn tiền để thuyết phục người nhận không? |
 
-Cùng request hỏi `Choice` `sufficiency`: `usable`, `limited`, `unusable`. Đây là đánh giá độ đủ dữ kiện cho sáu câu hỏi, không phải xác suất an toàn. Output nội bộ gồm xác suất sáu `Noul`, nhãn/phân bố/`confidence` của `Choice`, model, usage token và độ trễ.
+Cùng request hỏi `Choice` `sufficiency`: `usable`, `limited`, `unusable`. Đây là đánh giá độ đủ dữ kiện cho chín câu hỏi, không phải xác suất an toàn. Output nội bộ gồm xác suất chín `Noul`, nhãn/phân bố/`confidence` của `Choice`, model, usage token và độ trễ. Báo cáo cũ có sáu tín hiệu vẫn được đọc; kết quả mới phải có từ sáu đến chín ID duy nhất.
 
 **EV-02 — Kiểm tra bằng chứng.** `EvidencePair` gồm nguồn, nhận định, quote và đáp án chuẩn. Code từ chối cặp nếu quote không phải substring của source. Jev nhận source, claim, quote và trả `Choice`: `supported`, `unsupported`, `insufficient`, kèm phân bố, confidence, model, token và độ trễ. Quote hợp lệ về mặt chuỗi không tự chứng minh nhận định đúng.
 
@@ -43,7 +46,7 @@ Cùng request hỏi `Choice` `sufficiency`: `usable`, `limited`, `unusable`. Đ�
 
 ## Bộ dữ liệu và benchmark
 
-**EV-05 — Corpus phân loại.** Sinh chính xác 240 mẫu: 20 tình huống nền thuộc mỗi nhóm `suspicious`, `benign`, `insufficient`; mỗi tình huống có bốn biến thể `plain`, `no_diacritics`, `quoted`, `injection`, tổng cộng 80 mẫu/nhóm. Mỗi nhóm có 20 mẫu cho từng loại `message`, `email`, `url`, `image`. Các nhãn sáu tín hiệu là multi-label và được lưu ngoài nội dung.
+**EV-05 — Corpus phân loại.** Sinh chính xác 240 mẫu: 20 tình huống nền thuộc mỗi nhóm `suspicious`, `benign`, `insufficient`; mỗi tình huống có bốn biến thể `plain`, `no_diacritics`, `quoted`, `injection`, tổng cộng 80 mẫu/nhóm. Mỗi nhóm có 20 mẫu cho từng loại `message`, `email`, `url`, `image`. Các nhãn chín tín hiệu là multi-label và được lưu ngoài nội dung. Ba chiều mới có đối chứng nội dung an toàn và kiểm tra số mẫu dương trong benchmark.
 
 **EV-06 — Corpus bằng chứng.** Sinh chính xác 120 cặp: 40 `supported`, 40 `unsupported`, 40 `insufficient`. Mỗi cặp có quote nằm trong source, kể cả nhãn `unsupported` và `insufficient`.
 
